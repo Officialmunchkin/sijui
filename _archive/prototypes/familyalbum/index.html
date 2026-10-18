@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAMVAULT — Family Album Vault</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap");
+
+:root{
+  --bg:#0a0a12;
+  --panel:#12121e;
+  --panel2:#181828;
+  --line:#23233a;
+  --txt:#e8e8f2;
+  --dim:#8b8ba3;
+  --accent:#8B5CF6;
+  --accent2:#06B6D4;
+  --danger:#EF4444;
+  --ok:#22C55E;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font-family:"JetBrains Mono",monospace;
+  overflow-x:hidden;
+}
+button{font-family:inherit;cursor:pointer}
+
+/* ============ LOGIN SCREEN ============ */
+#screen-login{
+  position:fixed; inset:0; display:none;
+  flex-direction:column; align-items:center; justify-content:center;
+  background:
+    radial-gradient(900px 500px at 20% 10%, rgba(139,92,246,.14), transparent 60%),
+    radial-gradient(800px 500px at 85% 90%, rgba(6,182,212,.10), transparent 60%),
+    var(--bg);
+  z-index:50;
+}
+#screen-login.active{display:flex}
+.login-logo{
+  font-size:42px; font-weight:800; letter-spacing:10px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  margin-bottom:8px;
+}
+.login-sub{
+  font-size:11px; letter-spacing:5px; color:var(--dim); margin-bottom:38px;
+}
+#member-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:14px; width:min(820px,92vw);
+}
+.member-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:22px 12px 16px;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  position:relative;
+  transition:border-color .15s, transform .15s, background .15s;
+}
+.member-card:hover{border-color:var(--accent); transform:translateY(-3px)}
+.member-card.selected{border-color:var(--accent); background:var(--panel2)}
+.member-card .name{font-size:13px; font-weight:700; letter-spacing:2px}
+.member-card .role{font-size:9px; letter-spacing:2px; color:var(--dim)}
+.badge-admin{
+  position:absolute; top:8px; right:10px;
+  font-size:8px; letter-spacing:1px;
+  color:#F59E0B;
+}
+.avatar{
+  width:56px; height:56px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; font-weight:800;
+}
+#login-step2{
+  display:none;
+  margin-top:34px;
+  width:min(380px,92vw);
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:22px;
+}
+#pw-hint{font-size:10px; letter-spacing:2px; color:var(--dim); margin-bottom:12px}
+#pw-input{
+  width:100%;
+  background:#0d0d18;
+  border:1px solid var(--line);
+  border-radius:8px;
+  color:var(--txt);
+  font-family:inherit;
+  font-size:14px;
+  padding:12px 14px;
+  letter-spacing:3px;
+  outline:none;
+}
+#pw-input:focus{border-color:var(--accent)}
+#login-error{
+  display:none;
+  margin-top:10px;
+  font-size:10px;
+  color:var(--danger);
+  letter-spacing:1px;
+}
+.login-actions{display:flex; gap:10px; margin-top:16px}
+.btn{
+  background:var(--panel2);
+  border:1px solid var(--line);
+  color:var(--txt);
+  border-radius:8px;
+  padding:10px 18px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  transition:border-color .15s, background .15s;
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{
+  background:linear-gradient(90deg,var(--accent),#7C3AED);
+  border-color:transparent;
+}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger); border-color:var(--danger)}
+.btn.danger:hover{background:rgba(239,68,68,.12)}
+.btn:disabled{opacity:.4; cursor:not-allowed}
+
+/* ============ APP SCREEN ============ */
+#screen-app{display:none; min-height:100vh}
+#screen-app.active{display:block}
+.topbar{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; gap:18px;
+  padding:14px 24px;
+  background:rgba(10,10,18,.88);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.topbar .logo{
+  font-size:16px; font-weight:800; letter-spacing:4px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.who{display:flex; align-items:center; gap:10px; margin-left:auto}
+.who .who-avatar .avatar{width:36px; height:36px; font-size:14px}
+.who .who-name{font-size:11px; letter-spacing:2px}
+.tabs{display:flex; gap:6px}
+.tab{
+  background:transparent;
+  border:1px solid transparent;
+  color:var(--dim);
+  border-radius:8px;
+  padding:8px 16px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:2px;
+  transition:color .15s, border-color .15s, background .15s;
+}
+.tab:hover{color:var(--txt)}
+.tab.active{
+  color:var(--txt);
+  background:var(--panel2);
+  border-color:var(--line);
+}
+#tab-admin{display:none; color:#F59E0B}
+#tab-admin.show{display:inline-block}
+#tab-admin.active{color:#F59E0B; background:rgba(245,158,11,.10); border-color:rgba(245,158,11,.35)}
+
+.main{max-width:1200px; margin:0 auto; padding:28px 24px 80px}
+.panel{display:none}
+.panel.active{display:block}
+.panel-title{
+  font-size:13px; font-weight:800; letter-spacing:4px;
+  color:var(--accent2);
+  margin-bottom:18px;
+}
+
+/* vault */
+#album-chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px}
+.chip{
+  background:var(--panel);
+  border:1px solid var(--line);
+  color:var(--dim);
+  border-radius:999px;
+  padding:7px 16px;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:2px;
+  transition:all .15s;
+}
+.chip:hover{color:var(--txt); border-color:var(--accent)}
+.chip.active{
+  color:#fff;
+  background:var(--accent);
+  border-color:var(--accent);
+}
+#vault-count{font-size:10px; letter-spacing:2px; color:var(--dim); margin-bottom:14px}
+#photo-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:16px;
+}
+.photo-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+  cursor:pointer;
+  transition:border-color .15s, transform .15s;
+}
+.photo-card:hover{border-color:var(--accent); transform:translateY(-2px)}
+.photo-card img{
+  width:100%; aspect-ratio:4/3; object-fit:cover; display:block;
+  background:#0d0d18;
+}
+.photo-meta{
+  padding:10px 12px;
+  display:flex; justify-content:space-between; gap:8px;
+  font-size:9px; letter-spacing:1px;
+}
+.photo-meta .cap{color:var(--txt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.photo-meta .by{color:var(--dim)}
+#vault-empty{
+  display:none;
+  text-align:center;
+  padding:70px 0;
+  color:var(--dim);
+  font-size:11px;
+  letter-spacing:3px;
+}
+
+/* upload */
+.upload-box{
+  max-width:620px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:24px;
+  display:flex; flex-direction:column; gap:16px;
+}
+#dropzone{
+  border:2px dashed var(--line);
+  border-radius:12px;
+  padding:44px 20px;
+  text-align:center;
+  color:var(--dim);
+  font-size:11px;
+  letter-spacing:2px;
+  cursor:pointer;
+  transition:all .15s;
+}
+#dropzone.drag{border-color:var(--accent); background:rgba(139,92,246,.08)}
+#picked-list{font-size:9px; color:var(--dim); letter-spacing:1px; word-break:break-all}
+#up-caption{
+  background:#0d0d18;
+  border:1px solid var(--line);
+  border-radius:8px;
+  color:var(--txt);
+  font-family:inherit;
+  font-size:12px;
+  padding:11px 14px;
+  outline:none;
+}
+#up-caption:focus{border-color:var(--accent)}
+#up-album{
+  background:#0d0d18;
+  border:1px solid var(--line);
+  border-radius:8px;
+  color:var(--txt);
+  font-family:inherit;
+  font-size:11px;
+  padding:11px 14px;
+  outline:none;
+  letter-spacing:1px;
+}
+#upload-status{
+  display:none;
+  font-size:10px;
+  letter-spacing:1px;
+  padding:10px 14px;
+  border-radius:8px;
+  background:var(--panel2);
+  border:1px solid var(--line);
+}
+#upload-status.ok{color:var(--ok); border-color:rgba(34,197,94,.35)}
+#upload-status.err{color:var(--danger); border-color:rgba(239,68,68,.35)}
+
+/* admin */
+.admin-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:14px;
+  margin-bottom:26px;
+}
+.stat-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:18px;
+}
+.stat-card .lbl{font-size:8px; letter-spacing:2px; color:var(--dim); margin-bottom:8px}
+.stat-card .val{font-size:26px; font-weight:800}
+#admin-msg{
+  display:none;
+  font-size:10px;
+  letter-spacing:1px;
+  padding:10px 14px;
+  border-radius:8px;
+  margin-bottom:16px;
+  background:var(--panel2);
+  border:1px solid var(--line);
+}
+#admin-msg.ok{color:var(--ok); border-color:rgba(34,197,94,.35)}
+#admin-msg.err{color:var(--danger); border-color:rgba(239,68,68,.35)}
+.admin-section{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:18px;
+  margin-bottom:18px;
+}
+.admin-section h3{
+  font-size:10px; letter-spacing:3px; color:var(--accent2); margin-bottom:14px;
+}
+.pw-row{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
+}
+.pw-row:last-child{border-bottom:none}
+.pw-row .who{display:flex; align-items:center; gap:10px; margin-left:0}
+.pw-row .who .avatar{width:34px; height:34px; font-size:13px}
+.pw-row .nm{font-size:11px; font-weight:700; letter-spacing:1px}
+.pw-row .st{font-size:9px; color:var(--dim); margin-top:3px}
+.pw-actions{display:flex; gap:6px}
+.pw-actions .btn{padding:6px 12px; font-size:9px}
+.pw-actions .btn.danger{border-color:var(--danger)}
+.album-manage{display:flex; flex-wrap:wrap; gap:8px}
+#new-album-name{
+  background:#0d0d18;
+  border:1px solid var(--line);
+  border-radius:8px;
+  color:var(--txt);
+  font-family:inherit;
+  font-size:11px;
+  padding:10px 12px;
+  outline:none;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin-right:8px;
+}
+#new-album-name:focus{border-color:var(--accent)}
+
+/* lightbox */
+#lightbox{
+  position:fixed; inset:0; z-index:60;
+  background:rgba(5,5,10,.92);
+  display:none;
+  align-items:center; justify-content:center;
+  flex-direction:column;
+  gap:14px;
+  padding:30px;
+}
+#lightbox.open{display:flex}
+#lb-img{
+  max-width:90vw; max-height:75vh;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:#0d0d18;
+}
+#lb-meta{
+  font-size:10px; letter-spacing:2px; color:var(--dim);
+}
+.lb-actions{display:flex; gap:10px}
+
+/* toast */
+.toast{
+  position:fixed; bottom:26px; left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--panel2);
+  border:1px solid var(--accent);
+  color:var(--txt);
+  font-size:11px; letter-spacing:1px;
+  padding:12px 22px;
+  border-radius:10px;
+  opacity:0;
+  transition:transform .25s, opacity .25s;
+  z-index:100;
+  pointer-events:none;
+}
+.toast.show{
+  transform:translateX(-50%) translateY(0);
+  opacity:1;
+}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="screen-login" class="active">
+  <div class="login-logo">FAMVAULT</div>
+  <div class="login-sub">FAMILY ALBUM VAULT</div>
+  <div id="member-grid"></div>
+  <div id="login-step2">
+    <div id="pw-hint">PASSWORD</div>
+    <input id="pw-input" type="password" placeholder="••••••••" autocomplete="off">
+    <div id="login-error"></div>
+    <div class="login-actions">
+      <button id="btn-back" class="btn ghost">← BACK</button>
+      <button id="btn-login" class="btn primary">LOGIN →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="screen-app">
+  <div class="topbar">
+    <div class="logo">FAMVAULT</div>
+    <div class="tabs">
+      <button class="tab active" data-panel="panel-vault">VAULT</button>
+      <button class="tab" data-panel="panel-upload">UPLOAD</button>
+      <button class="tab" id="tab-admin" data-panel="panel-admin">ADMIN</button>
+    </div>
+    <div class="who">
+      <div class="who-avatar" id="who-avatar-slot"></div>
+      <div class="who-name" id="who-name"></div>
+      <button id="btn-logout" class="btn ghost">LOG OUT</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- VAULT -->
+    <div id="panel-vault" class="panel active">
+      <div class="panel-title">THE VAULT</div>
+      <div id="album-chips"></div>
+      <div id="vault-count"></div>
+      <div id="vault-empty">VAULT IS EMPTY — UPLOAD SOME PHOTOS</div>
+      <div id="photo-grid"></div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div id="panel-upload" class="panel">
+      <div class="panel-title">UPLOAD PHOTOS</div>
+      <div class="upload-box">
+        <div id="dropzone">
+          DRAG &amp; DROP PHOTOS HERE<br><br>
+          OR CLICK TO BROWSE
+        </div>
+        <input id="file-input" type="file" accept="image/*" multiple style="display:none">
+        <div id="picked-list"></div>
+        <input id="up-caption" type="text" placeholder="CAPTION (OPTIONAL)">
+        <select id="up-album"></select>
+        <button id="btn-upload" class="btn primary">UPLOAD →</button>
+        <div id="upload-status"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="panel-admin" class="panel">
+      <div class="panel-title">ADMIN PANEL</div>
+      <div id="admin-msg"></div>
+      <div class="admin-grid">
+        <div class="stat-card"><div class="lbl">PHOTOS</div><div class="val" id="stat-photos">0</div></div>
+        <div class="stat-card"><div class="lbl">MEMBERS</div><div class="val" id="stat-members">0</div></div>
+        <div class="stat-card"><div class="lbl">ALBUMS</div><div class="val" id="stat-albums">0</div></div>
+        <div class="stat-card"><div class="lbl">PASSWORDS SET</div><div class="val" id="stat-pw">0</div><div style="font-size:9px;color:var(--dim);margin-top:4px" id="pw-count"></div></div>
+      </div>
+      <div class="admin-section">
+        <h3>MEMBER PASSWORDS</h3>
+        <div id="pw-list"></div>
+        <div style="font-size:9px;color:var(--dim);margin-top:10px;letter-spacing:1px">
+          RESET = MEMBER SETS NEW PASSWORD ON NEXT LOGIN
+        </div>
+      </div>
+      <div class="admin-section">
+        <h3>ALBUMS</h3>
+        <div class="album-manage" id="album-manage"></div>
+        <div style="margin-top:14px">
+          <input id="new-album-name" type="text" placeholder="NEW ALBUM NAME">
+          <button id="btn-add-album" class="btn">+ ADD ALBUM</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= LIGHTBOX ================= -->
+<div id="lightbox">
+  <img id="lb-img" alt="">
+  <div id="lb-meta"></div>
+  <div class="lb-actions">
+    <button id="lb-close" class="btn ghost">CLOSE</button>
+    <button id="lb-delete" class="btn danger">DELETE</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   FAMVAULT — Family Album Vault (fresh rebuild)
+   Same logic as the original: member grid, first-login-set / stored
+   password login (localStorage), album filters, R2-backed photo
+   upload/list/delete, lightbox with admin delete, and an ADMIN panel
+   visible only to Herman. Theme + JetBrains Mono fonts preserved.
+   ===================================================================== */
+
+const API_URL = 'https://famvault-r2.famvault.workers.dev';
+const LS = {
+  members:   'famvault_members',
+  albums:    'famvault_albums',
+  passwords: 'famvault_passwords',
+  session:   'famvault_session'
+};
+
+/* ---------------- seed data ---------------- */
+const SEED_MEMBERS = [
+  { id:'jermaine', name:'JERMAINE', relation:'FATHER',     bio:'DAD. KEEPS THE FAMILY GROUNDED.',              birthday:'05-12', color:'#6366F1', initial:'J', isAdmin:false, isGuest:false },
+  { id:'lucy',     name:'LUCY',     relation:'MOTHER',     bio:'MUM. HEART OF THE HOUSE.',                     birthday:'08-22', color:'#06B6D4', initial:'L', isAdmin:false, isGuest:false },
+  { id:'faith',    name:'FAITH',    relation:'1ST BORN',   bio:'FIRST BORN. BIG SISTER ENERGY.',               birthday:'02-14', color:'#EC4899', initial:'F', isAdmin:false, isGuest:false },
+  { id:'herman',   name:'HERMAN',   relation:'2ND BORN - ME', bio:'ME. BUILDER OF THIS VAULT.',                birthday:'11-03', color:'#F59E0B', initial:'H', isAdmin:true,  isGuest:false },
+  { id:'hossam',   name:'HOSSAM',   relation:'3RD BORN',   bio:'THIRD BORN. CHILL, FUNNY, GAMER.',             birthday:'07-19', color:'#8B5CF6', initial:'H', isAdmin:false, isGuest:false },
+  { id:'amber',    name:'AMBER',    relation:'LAST BORN',  bio:'YOUNGEST BUT LOUDEST.',                        birthday:'12-01', color:'#14B8A6', initial:'A', isAdmin:false, isGuest:false }
+];
+const SEED_ALBUMS = ['SUMMER 24', 'XMAS 23', 'BIRTHDAYS', 'WEEKENDS', 'FAMILY BBQ', 'ARCHIVE'];
+
+/* ---------------- state ---------------- */
+let members     = [...SEED_MEMBERS];
+let albums      = [...SEED_ALBUMS];
+let passwords   = {};
+let photos      = [];
+let session     = null;
+let filterAlbum = 'ALL';
+let pickedFiles = [];
+let pendingMember = null;
+
+/* ---------------- storage ---------------- */
+function loadState() {
+  try {
+    const m = localStorage.getItem(LS.members);
+    if (m) { const arr = JSON.parse(m); if (Array.isArray(arr) && arr.length) members = arr; }
+    const a = localStorage.getItem(LS.albums);
+    if (a) { const arr = JSON.parse(a); if (Array.isArray(arr) && arr.length) albums = arr; }
+    const p = localStorage.getItem(LS.passwords);
+    if (p) passwords = JSON.parse(p) || {};
+    const s = localStorage.getItem(LS.session);
+    if (s) session = JSON.parse(s);
+  } catch (e) { console.warn('loadState', e); }
+}
+function saveMembers()   { try { localStorage.setItem(LS.members, JSON.stringify(members)); } catch(e){} }
+function saveAlbums()    { try { localStorage.setItem(LS.albums, JSON.stringify(albums)); } catch(e){} }
+function savePasswords() { try { localStorage.setItem(LS.passwords, JSON.stringify(passwords)); } catch(e){} }
+function saveSession() {
+  try {
+    if (session) localStorage.setItem(LS.session, JSON.stringify(session));
+    else localStorage.removeItem(LS.session);
+  } catch(e){}
+}
+
+/* ---------------- helpers ---------------- */
+const $ = (sel) => document.querySelector(sel);
+const currentMember = () => session ? members.find(m => m.id === session.memberId) || null : null;
+const isAdmin = () => { const m = currentMember(); return !!(m && m.isAdmin && !m.isGuest); };
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function avatarHTML(m) {
+  return `<div class="avatar" style="background:${m.color}22; border:2px solid ${m.color}66; color:${m.color};">${m.initial}</div>`;
+}
+
+function escapeHTML(s) {
+  return String(s || '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+/* ---------------- API (R2 via Worker) ---------------- */
+async function apiListPhotos() {
+  try {
+    const res = await fetch(`${API_URL}/photos`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data.photos)) photos = data.photos;
+  } catch (e) { console.warn('apiListPhotos', e); }
+}
+
+async function apiUpload(file, caption, album, uploadedBy) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('caption', caption);
+  fd.append('album', album);
+  fd.append('uploadedBy', uploadedBy);
+  const res = await fetch(`${API_URL}/upload`, {
+    method: 'POST',
+    headers: { 'X-Famvault-Role': 'member' },
+    body: fd
+  });
+  if (!res.ok) {
+    let msg = 'UPLOAD FAILED';
+    try { msg = (await res.json()).error || msg; } catch(e){}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+async function apiDeletePhoto(key) {
+  const res = await fetch(`${API_URL}/photos/${encodeURIComponent(key)}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('DELETE FAILED');
+}
+
+function photoURL(key) { return `${API_URL}/file/${encodeURIComponent(key)}`; }
+
+/* ---------------- LOGIN FLOW ---------------- */
+function renderMemberGrid() {
+  $('#member-grid').innerHTML = members.map(m => `
+    <button class="member-card" data-id="${m.id}">
+      ${avatarHTML(m)}
+      <div class="name">${escapeHTML(m.name)}</div>
+      <div class="role">${escapeHTML(m.relation)}</div>
+      ${m.isAdmin ? '<span class="badge-admin">★ ADMIN</span>' : ''}
+    </button>
+  `).join('');
+  document.querySelectorAll('.member-card').forEach(el => {
+    el.addEventListener('click', () => selectMember(el.dataset.id));
+  });
+}
+
+function selectMember(id) {
+  pendingMember = members.find(m => m.id === id);
+  if (!pendingMember) return;
+  document.querySelectorAll('.member-card').forEach(el =>
+    el.classList.toggle('selected', el.dataset.id === id));
+  $('#login-step2').style.display = 'block';
+  $('#login-error').style.display = 'none';
+  const hasPw = !!passwords[pendingMember.id];
+  $('#pw-hint').textContent = hasPw ? `PASSWORD FOR ${pendingMember.name}` : `SET PASSWORD FOR ${pendingMember.name} (FIRST LOGIN)`;
+  $('#btn-login').textContent = hasPw ? 'LOGIN →' : 'SET & LOGIN →';
+  $('#pw-input').value = '';
+  $('#pw-input').focus();
+}
+
+function doLogin() {
+  if (!pendingMember) return;
+  const val = $('#pw-input').value.trim();
+  if (!val) { showLoginError('ENTER A PASSWORD'); return; }
+  const stored = passwords[pendingMember.id];
+  if (!stored) {
+    passwords[pendingMember.id] = val;
+    savePasswords();
+  } else if (stored !== val) {
+    showLoginError('WRONG PASSWORD — TRY AGAIN');
+    return;
+  }
+  session = { memberId: pendingMember.id, at: Date.now() };
+  saveSession();
+  pendingMember = null;
+  $('#pw-input').value = '';
+  enterApp();
+}
+
+function showLoginError(msg) {
+  const e = $('#login-error');
+  e.textContent = msg;
+  e.style.display = 'block';
+}
+
+/* ---------------- MAIN APP ---------------- */
+function enterApp() {
+  $('#screen-login').classList.remove('active');
+  $('#screen-app').classList.add('active');
+  const m = currentMember();
+  $('#who-name').textContent = m ? m.name : '';
+  $('#who-avatar-slot').innerHTML = avatarHTML(m || { color:'#8B5CF6', initial:'—' });
+  const adminTab = $('#tab-admin');
+  adminTab.classList.toggle('show', isAdmin());
+  if (!isAdmin()) {
+    adminTab.classList.remove('active');
+    $('#panel-admin').classList.remove('active');
+  }
+  switchTab('panel-vault');
+  renderAlbumChips();
+  renderPhotos();
+  renderUploadAlbums();
+  if (isAdmin()) renderAdmin();
+  apiListPhotos().then(renderPhotos);
+}
+
+function logout() {
+  session = null;
+  saveSession();
+  $('#screen-app').classList.remove('active');
+  $('#screen-login').classList.add('active');
+  $('#login-step2').style.display = 'none';
+  document.querySelectorAll('.member-card').forEach(el => el.classList.remove('selected'));
+  pendingMember = null;
+  filterAlbum = 'ALL';
+  renderMemberGrid();
+}
+
+function switchTab(panelId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === panelId));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === panelId));
+  if (panelId === 'panel-admin' && isAdmin()) renderAdmin();
+  if (panelId === 'panel-vault') renderPhotos();
+}
+
+/* ---------------- VAULT ---------------- */
+function filteredPhotos() {
+  if (filterAlbum === 'ALL') return photos;
+  return photos.filter(p => (p.album || 'UNSORTED') === filterAlbum);
+}
+
+function renderAlbumChips() {
+  const chips = ['ALL', ...albums, 'UNSORTED'];
+  $('#album-chips').innerHTML = chips.map(a =>
+    `<button class="chip ${filterAlbum === a ? 'active' : ''}" data-album="${escapeHTML(a)}">${escapeHTML(a)}</button>`
+  ).join('');
+  document.querySelectorAll('#album-chips .chip').forEach(el => {
+    el.addEventListener('click', () => { filterAlbum = el.dataset.album; renderAlbumChips(); renderPhotos(); });
+  });
+}
+
+function renderPhotos() {
+  const list = filteredPhotos();
+  $('#vault-count').textContent = `${list.length} PHOTOS`;
+  $('#vault-empty').style.display = list.length ? 'none' : 'block';
+  $('#photo-grid').innerHTML = list.map(p => `
+    <div class="photo-card" data-key="${escapeHTML(p.key)}">
+      <img src="${photoURL(p.key)}" alt="" loading="lazy">
+      <div class="photo-meta">
+        <span class="cap">${escapeHTML(p.caption || 'UNTITLED')}</span>
+        <span class="by">${escapeHTML((p.uploadedBy || '').toUpperCase())}</span>
+      </div>
+    </div>
+  `).join('');
+  document.querySelectorAll('#photo-grid .photo-card').forEach(el => {
+    el.addEventListener('click', () => openLightbox(el.dataset.key));
+  });
+}
+
+/* ---------------- LIGHTBOX ---------------- */
+let lbKey = null;
+function openLightbox(key) {
+  const p = photos.find(x => x.key === key);
+  if (!p) return;
+  lbKey = key;
+  $('#lb-img').src = photoURL(key);
+  $('#lb-meta').textContent = `${(p.caption || 'UNTITLED').toUpperCase()} • ${p.album || 'UNSORTED'} • ${(p.uploadedBy || '').toUpperCase()}${isAdmin() ? ' • DELETE ENABLED (ADMIN)' : ''}`;
+  $('#lb-delete').style.display = isAdmin() ? 'inline-flex' : 'none';
+  $('#lightbox').classList.add('open');
+}
+function closeLightbox() { $('#lightbox').classList.remove('open'); lbKey = null; }
+
+async function deletePhotoFromLightbox() {
+  if (!lbKey) return;
+  try {
+    await apiDeletePhoto(lbKey);
+    photos = photos.filter(p => p.key !== lbKey);
+    closeLightbox();
+    renderPhotos();
+    renderAdmin();
+    toast('PHOTO DELETED');
+  } catch (e) { toast('DELETE FAILED'); }
+}
+
+/* ---------------- UPLOAD (bulk, 4 in parallel with progress) ---------------- */
+function renderUploadAlbums() {
+  const sel = $('#up-album');
+  const prev = sel.value;
+  sel.innerHTML = [...albums, 'UNSORTED'].map(a => `<option value="${escapeHTML(a)}">${escapeHTML(a)}</option>`).join('');
+  if (prev) sel.value = prev;
+}
+
+function handleFiles(files) {
+  pickedFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  $('#picked-list').textContent = pickedFiles.length
+    ? `PICKED: ${pickedFiles.length} FILE(S) — ${pickedFiles.map(f => f.name).join(', ').slice(0, 120)}`
+    : '';
+}
+
+async function uploadOne(f, caption, album, uploadedBy) {
+  const res = await apiUpload(f, caption, album, uploadedBy);
+  if (res.photo) photos.push(res.photo);
+  return res.photo;
+}
+
+async function doUpload() {
+  const m = currentMember();
+  if (!m) return;
+  if (!pickedFiles.length) { toast('PICK AT LEAST ONE PHOTO'); return; }
+  const caption = $('#up-caption').value.trim();
+  const album = $('#up-album').value;
+  const btn = $('#btn-upload');
+  const st = $('#upload-status');
+  btn.disabled = true;
+  st.style.display = 'block';
+  st.className = '';
+  st.textContent = `UPLOADING 0/${pickedFiles.length}`;
+
+  let done = 0, failed = 0, idx = 0;
+  const total = pickedFiles.length;
+  const PARALLEL = 4;
+
+  async function worker() {
+    while (idx < total) {
+      const i = idx++;
+      const f = pickedFiles[i];
+      st.textContent = `UPLOADING ${done + failed + 1}/${total} — ${f.name}`;
+      try {
+        await uploadOne(f, caption, album, m.id);
+        done++;
+      } catch (e) { failed++; }
+      st.textContent = `${done + failed}/${total} — ${done} OK • ${failed} FAILED`;
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(PARALLEL, total) }, worker));
+
+  btn.disabled = false;
+  st.style.display = 'block';
+  if (failed === 0) {
+    st.className = 'ok';
+    st.textContent = `DONE — ${done} PHOTO(S) UPLOADED`;
+    toast('UPLOADED TO THE VAULT');
+  } else {
+    st.className = 'err';
+    st.textContent = `${done} OK • ${failed} FAILED`;
+    toast('SOME UPLOADS FAILED');
+  }
+  $('#up-caption').value = '';
+  pickedFiles = [];
+  $('#picked-list').textContent = '';
+  renderPhotos();
+  renderAdmin();
+}
+
+/* ---------------- ADMIN ---------------- */
+function renderAdmin() {
+  if (!isAdmin()) return;
+  $('#stat-photos').textContent = photos.length;
+  $('#stat-members').textContent = members.filter(m => !m.isGuest).length;
+  $('#stat-albums').textContent = albums.length;
+  const real = members.filter(m => !m.isGuest);
+  const setCount = real.filter(m => passwords[m.id]).length;
+  $('#stat-pw').textContent = setCount;
+  $('#pw-count').textContent = `${setCount}/${real.length} SET`;
+
+  $('#pw-list').innerHTML = real.map(m => {
+    const pw = passwords[m.id];
+    return `
+    <div class="pw-row" data-id="${m.id}">
+      <div class="who">
+        ${avatarHTML(m)}
+        <div>
+          <div class="nm">${escapeHTML(m.name)} <span style="color:${m.color}; font-size:8px;">${escapeHTML(m.relation)}</span></div>
+          <div class="st">${pw ? `PASSWORD: ${escapeHTML(pw)}` : 'NO PASSWORD YET (FIRST LOGIN SETS IT)'}</div>
+        </div>
+      </div>
+      <div class="pw-actions">
+        <button class="btn" data-act="set" data-id="${m.id}">SET</button>
+        <button class="btn danger" data-act="reset" data-id="${m.id}">RESET</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('#pw-list .btn').forEach(el => {
+    el.addEventListener('click', () => adminPasswordAction(el.dataset.act, el.dataset.id));
+  });
+
+  $('#album-manage').innerHTML = albums.map(a => `<span class="chip">${escapeHTML(a)}</span>`).join('');
+}
+
+function adminPasswordAction(act, id) {
+  const m = members.find(x => x.id === id);
+  if (!m) return;
+  if (act === 'set') {
+    const val = prompt(`SET PASSWORD FOR ${m.name}:`);
+    if (val && val.trim()) {
+      passwords[id] = val.trim();
+      savePasswords();
+      renderAdmin();
+      adminMsg(`PASSWORD SET FOR ${m.name}`, true);
+    }
+  } else if (act === 'reset') {
+    if (confirm(`RESET PASSWORD FOR ${m.name}? THEY WILL SET A NEW ONE ON NEXT LOGIN.`)) {
+      delete passwords[id];
+      savePasswords();
+      renderAdmin();
+      adminMsg(`PASSWORD RESET FOR ${m.name}`, true);
+    }
+  }
+}
+
+function adminMsg(text, ok) {
+  const el = $('#admin-msg');
+  el.textContent = text;
+  el.className = ok ? 'ok' : 'err';
+  el.style.display = 'block';
+  clearTimeout(el._h);
+  el._h = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function addAlbum() {
+  const name = $('#new-album-name').value.trim().toUpperCase();
+  if (!name) { toast('ENTER AN ALBUM NAME'); return; }
+  if (albums.includes(name)) { toast('ALBUM ALREADY EXISTS'); return; }
+  albums.push(name);
+  saveAlbums();
+  $('#new-album-name').value = '';
+  renderAlbumChips();
+  renderUploadAlbums();
+  renderAdmin();
+  adminMsg(`ALBUM "${name}" CREATED`, true);
+}
+
+/* ---------------- EVENTS ---------------- */
+function bindEvents() {
+  $('#btn-login').addEventListener('click', doLogin);
+  $('#pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  $('#btn-back').addEventListener('click', () => {
+    $('#login-step2').style.display = 'none';
+    pendingMember = null;
+    document.querySelectorAll('.member-card').forEach(el => el.classList.remove('selected'));
+  });
+
+  $('#btn-logout').addEventListener('click', logout);
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => switchTab(t.dataset.panel));
+  });
+
+  $('#lb-close').addEventListener('click', closeLightbox);
+  $('#lb-delete').addEventListener('click', deletePhotoFromLightbox);
+  $('#lightbox').addEventListener('click', e => { if (e.target === $('#lightbox')) closeLightbox(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+  const dz = $('#dropzone');
+  const fi = $('#file-input');
+  dz.addEventListener('click', () => fi.click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag');
+    handleFiles(e.dataTransfer.files);
+  });
+  fi.addEventListener('change', () => handleFiles(fi.files));
+  $('#btn-upload').addEventListener('click', doUpload);
+
+  $('#btn-add-album').addEventListener('click', addAlbum);
+  $('#new-album-name').addEventListener('keydown', e => { if (e.key === 'Enter') addAlbum(); });
+}
+
+/* ---------------- boot ---------------- */
+function boot() {
+  loadState();
+  bindEvents();
+  renderMemberGrid();
+  if (session && currentMember()) {
+    enterApp();
+  }
+}
+boot();
+</script>
+</body>
+</html>

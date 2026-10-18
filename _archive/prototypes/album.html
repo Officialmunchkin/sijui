@@ -1,0 +1,1797 @@
+﻿﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAM VAULT &#x2014; Kashifamily</title>
+<style>
+/* theme: JetBrains Mono, dark vault palette &#x2014; same as original family.html */
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap");
+:root{--bg:#08080F;--surface:#151525;--surface2:#1A1A2E;--line:#2A2A4A;--txt:#E6E6F0;--muted:#8B8BB0;--dim:#5A5A80;--accent:#8B5CF6;--accent2:#6366F1;--pink:#EC4899;--danger:#FF6B8A;--ok:#10B981;--amber:#F59E0B;--cyan:#06B6D4}
+*{box-sizing:border-box;margin:0;padding:0;font-family:"JetBrains Mono",monospace}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);overflow-x:hidden}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit;outline:none}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
+.hide{display:none!important}
+/* ---------- buttons ---------- */
+.btn{height:36px;padding:0 18px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.18em;border:1px solid var(--line);background:var(--surface2);color:var(--muted);transition:all .15s}
+.btn:hover{border-color:var(--accent);color:#fff;transform:translateY(-2px)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn.primary{background:linear-gradient(90deg,var(--accent2),var(--accent));border-color:rgba(139,92,246,.5);color:#fff;box-shadow:0 0 20px rgba(139,92,246,.4)}
+.btn.white{background:#fff;color:#000;border-color:#fff}
+.btn.danger{background:#1A1220;border-color:#3A1A2A;color:var(--danger)}
+.btn.mini{height:28px;padding:0 12px;font-size:10px}
+/* ---------- login ---------- */
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+.login::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 400px at 50% -10%,rgba(139,92,246,.18),transparent),radial-gradient(500px 300px at 90% 110%,rgba(99,102,241,.12),transparent)}
+.login-inner{position:relative;z-index:10;width:100%;max-width:760px;text-align:center}
+.logo-big{font-size:64px;font-weight:800;letter-spacing:.12em;line-height:.95;background:linear-gradient(180deg,#C4B5FD 0%,#8B5CF6 50%,#6366F1 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px rgba(139,92,246,.6))}
+.login-sub{margin-top:14px;font-size:11px;letter-spacing:.32em;color:var(--muted);font-weight:700;text-transform:uppercase}
+.member-grid{margin-top:36px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:640px){.member-grid{grid-template-columns:repeat(2,1fr)}}
+.member-card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px 14px;text-align:center;transition:all .2s;position:relative}
+.member-card:hover{border-color:rgba(139,92,246,.6);transform:translateY(-4px);box-shadow:0 8px 30px rgba(139,92,246,.25)}
+.member-top{display:flex;align-items:center;justify-content:space-between}
+.member-name{margin-top:12px;font-size:13px;font-weight:800;letter-spacing:.15em;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px}
+.member-handle{margin-top:4px;font-size:10px;letter-spacing:.18em;color:var(--dim);text-transform:lowercase}
+.member-relation{margin-top:10px;display:inline-block;padding:4px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);font-size:9px;letter-spacing:.18em;color:var(--muted)}
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0}
+.avatar.md{width:52px;height:52px;font-size:18px}
+.avatar.sm{width:36px;height:36px;font-size:12px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);display:inline-block}
+.tag{padding:2px 7px;border-radius:999px;font-size:8px;font-weight:800;letter-spacing:.14em}
+.tag.admin{background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.35);color:var(--amber)}
+.tag.guest{background:rgba(90,90,128,.2);border:1px solid rgba(90,90,128,.35);color:var(--muted)}
+.login-actions{margin-top:28px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+/* ---------- app shell ---------- */
+.app{min-height:100vh}
+.guest-bar{position:relative;z-index:45;background:linear-gradient(90deg,#151525,#1A1220);border-bottom:1px solid rgba(139,92,246,.3);padding:8px 16px}
+.guest-bar-in{max-width:1200px;margin:0 auto;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:10px;letter-spacing:.28em;color:#C4B5FD;font-weight:700;text-align:center}
+.header{position:sticky;top:0;z-index:40;backdrop-filter:blur(18px);background:rgba(8,8,15,.82);border-bottom:1px solid var(--line)}
+.header-in{max-width:1200px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.who{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.14em;color:var(--muted)}
+.who-b{font-weight:800}
+.hero{max-width:1200px;margin:0 auto;padding:30px 16px 0}
+.hero-row{flex-direction:row}
+@media(max-width:720px){.hero-row{flex-direction:column}}
+.search{max-width:320px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tab{height:36px;padding:0 18px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.18em;transition:all .15s}
+.tab:hover{color:#fff;border-color:rgba(139,92,246,.5)}
+.tab.active{background:linear-gradient(90deg,var(--accent2),var(--accent));border-color:rgba(139,92,246,.6);color:#fff;box-shadow:0 0 20px rgba(139,92,246,.45)}
+.content{max-width:1200px;margin:0 auto;padding:24px 16px 120px}
+/* ---------- cards / grids ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:20px;position:relative}
+.stat3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat-box{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.stat-lbl{font-size:8px;letter-spacing:.2em;color:var(--dim)}
+.home-stats{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.masonry{columns:3 260px;column-gap:14px;margin-top:8px}
+.masonry.lg{columns:4 240px}
+.photo-card{break-inside:avoid;margin-bottom:14px;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
+.photo-card:hover{border-color:rgba(139,92,246,.5);transform:translateY(-3px);box-shadow:0 8px 26px rgba(139,92,246,.2)}
+.photo-card img,.photo-card video{width:100%;display:block;background:var(--surface2)}
+.photo-album-tag{position:absolute;top:10px;left:10px;padding:3px 9px;border-radius:999px;background:rgba(8,8,15,.7);border:1px solid var(--line);font-size:9px;letter-spacing:.14em;color:#C4B5FD}
+.photo-like{position:absolute;top:10px;right:10px;padding:3px 9px;border-radius:999px;background:rgba(8,8,15,.7);border:1px solid rgba(236,72,153,.4);font-size:10px;color:var(--pink)}
+.photo-byline{margin-top:4px;font-size:9px;letter-spacing:.14em;color:var(--dim)}
+.album-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:20px}
+.album-card{transition:all .2s}
+.album-card:hover{transform:translateY(-3px)}
+.members-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.board-post{display:flex;gap:10px;padding:14px;border-radius:16px;background:var(--surface2);border:1px solid var(--line)}
+.chip-album{transition:all .15s}
+.chip-album:hover{transform:translateY(-2px)}
+/* ---------- inputs / overlays ---------- */
+.input{width:100%;height:40px;background:var(--panel,#0E0E1E);border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:12px;letter-spacing:.08em;color:#fff;transition:border-color .15s}
+.input:focus{border-color:rgba(139,92,246,.7)}
+.input::placeholder{color:var(--dim)}
+textarea.input{height:auto;padding:12px;resize:none}
+.field-label{font-size:10px;letter-spacing:.25em;color:var(--dim);margin-bottom:8px;font-weight:700}
+.err-box{margin-top:10px;padding:10px 14px;border-radius:12px;background:rgba(255,107,138,.12);border:1px solid rgba(255,107,138,.4);font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--danger);text-align:center}
+.overlay{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,8,15,.8);backdrop-filter:blur(12px)}
+.backdrop{position:absolute;inset:0}
+.modal{position:relative;z-index:1;width:100%;max-width:460px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:24px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);color:var(--muted);display:flex;align-items:center;justify-content:center}
+.lb-panel{position:relative;z-index:1;display:flex;width:100%;max-width:960px;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:24px;overflow:hidden;max-height:90vh}
+@media(min-width:800px){.lb-panel{flex-direction:row}}
+.fab{position:fixed;bottom:24px;right:24px;z-index:30;width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:28px;font-weight:800;border:none;box-shadow:0 0 30px rgba(139,92,246,.6);transition:transform .15s}
+.fab:hover{transform:scale(1.06)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--accent);color:#fff;font-size:11px;letter-spacing:.1em;padding:12px 20px;border-radius:10px;opacity:0;transition:all .25s;z-index:99;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.empty{font-size:11px;letter-spacing:.2em;color:var(--dim);text-align:center;padding:40px 0}
+.admin-2col{grid-template-columns:repeat(2,1fr)}
+@media(max-width:720px){.admin-2col{grid-template-columns:1fr}}
+.pw-grid{grid-template-columns:repeat(2,1fr)}
+@media(max-width:720px){.pw-grid{grid-template-columns:1fr}}
+.bday-grid{grid-template-columns:repeat(2,1fr)}
+@media(max-width:720px){.bday-grid{grid-template-columns:1fr}}
+.desktop-only{display:none}
+@media(min-width:860px){.desktop-only{display:inline-flex}}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* =========================================================
+   FAM VAULT \u2014 Kashifamily (clean rewrite)
+   Same logic as the original family.html:
+   \u2022 member grid login (password set on first login, stored in localStorage)
+   \u2022 guest login = view only (no download / upload / edit)
+   \u2022 ADMIN tab visible to herman only
+   \u2022 photos stored in Cloudflare R2 bucket "familyvault" via Worker API
+   ========================================================= */
+
+/* ---------------- CONFIG ---------------- */
+/* R2 is accessed ONLY through the Worker (keys stay server-side \u2014 never in HTML). */
+const R2_CONFIG = {
+  API: "https://famvault-r2.famvault.workers.dev", // GET /photos, GET /file/<key>, POST /upload, DELETE /photos/<id>
+};
+const ADMIN_ID = "herman";
+const LS = {
+  members: "famvault_members",
+  albums: "famvault_albums",
+  passwords: "famvault_passwords",
+    session: "famvault_session",
+    trash: "famvault_trash",
+    board: "famvault_board",
+  };
+
+/* ---------------- SEED DATA ---------------- */
+const SEED_MEMBERS = [
+  { id:"jermaine", name:"JERMAINE", handle:"jermaine", relation:"FATHER",          bio:"DAD. KEEPS THE FAMILY GROUNDED. LOVES FOOTY, BBQ, AND TELLING THE SAME STORY TWICE.", birthday:"05-12", color:"#6366F1", initial:"J", isAdmin:false, isGuest:false },
+  { id:"lucy",     name:"LUCY",     handle:"lucy",     relation:"MOTHER",          bio:"MUM. HEART OF THE HOUSE. KEEPS EVERYONE FED AND ON TIME.",                          birthday:"08-22", color:"#06B6D4", initial:"L", isAdmin:false, isGuest:false },
+  { id:"faith",    name:"FAITH",    handle:"faith",    relation:"1ST BORN",        bio:"FIRST BORN. BIG SISTER ENERGY. ARTIST, ORGANIZER, SECRETLY IN CHARGE.",             birthday:"02-14", color:"#EC4899", initial:"F", isAdmin:false, isGuest:false },
+  { id:"herman",   name:"HERMAN",   handle:"herman",   relation:"2ND BORN - ME",   bio:"BUILDER OF THIS VAULT. CODE, PHOTOS, AND THE REMOTE CONTROL.",                     birthday:"11-03", color:"#F59E0B", initial:"H", isAdmin:true,  isGuest:false },
+  { id:"hossam",   name:"HOSSAM",   handle:"hossam",   relation:"3RD BORN",        bio:"THIRD BORN. CHILL, FUNNY, GAMER. ALWAYS HAS THE AUX AND THE BEST MEMES.",          birthday:"07-19", color:"#8B5CF6", initial:"H", isAdmin:false, isGuest:false },
+  { id:"amber",    name:"AMBER",    handle:"amber",    relation:"LAST BORN",       bio:"LAST BORN. YOUNGEST BUT LOUDEST. DANCE, LAUGHS, AND STOLE EVERYONE'S HOODIES.",    birthday:"12-01", color:"#14B8A6", initial:"A", isAdmin:false, isGuest:false },
+];
+const SEED_ALBUMS = ["SUMMER 24","XMAS 23","BIRTHDAYS","WEEKENDS","FAMILY BBQ","ARCHIVE"];
+
+/* ---------------- STATE ---------------- */
+let state = {
+  members: SEED_MEMBERS.map(m => ({...m})),
+  albums: [...SEED_ALBUMS],
+  passwords: {},            // memberId -> password (localStorage, same as original)
+  session: null,            // { memberId, at } | null
+  photos: [],               // from R2 worker
+  tab: "HOME",              // HOME | ALBUMS | MEMBERS | BOARD | ADMIN
+  albumFilter: "ALL",
+  search: "",
+  pendingMember: null,      // login modal target
+  pwInput: "", pwError: "",
+  uploadOpen: false, uploadFile: null, uploadPreview: null,
+  uploadCaption: "", uploadAlbum: SEED_ALBUMS[0], uploadNewAlbum: false, newAlbumName: "", uploadFiles: null, uploadDone: 0, uploadTotal: 0,
+  newAlbumOpen: false, newAlbumTitle: "",
+  renameAlbum: null, renameAlbumName: "",
+  bioEditId: null, bioDraft: "",
+  addMemberOpen: false, addMemberForm: { name:"", relation:"", birthday:"", bio:"", color:"#8B5CF6", isAdmin:false, isGuest:false },
+  editMemberId: null, editMemberForm: { name:"", relation:"", birthday:"", bio:"", color:"#8B5CF6", isAdmin:false, isGuest:false },
+  adminPwDrafts: {},
+  lightbox: null,
+  uploading: false,
+  visibleLimit: 100,          // pagination: only render first N cards (perf)
+  trash: [],                  // trashed items (not shown on HOME/ALBUMS)
+  selectMode: false,          // bulk-delete selection mode
+  selectedIds: new Set(),     // ids selected for bulk trash
+  boardPosts: [],             // persisted board posts
+  boardDraft: "",
+  taggedIds: [],              // people tagged in current upload
+};
+
+/* photos not in trash â€” used everywhere except the TRASH tab */
+function activePhotos(){
+  return state.photos.filter(p => (p.album || "").toUpperCase() !== "TRASH" && !state.trash.some(t => t.id === p.id));
+}
+
+/* ---------------- UTILS ---------------- */
+const $ = sel => document.querySelector(sel);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const avatar = (m, cls="md") => `<div class="avatar ${cls}" style="background:${m.color};box-shadow:0 0 18px ${m.color}80">${esc(m.initial)}</div>`;
+
+function toast(msg){
+  let t = $("#toast");
+  if(!t){ t = document.createElement("div"); t.className = "toast"; t.id = "toast"; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+function parseBirthday(str){                      // supports MM-DD, YYYY-MM-DD, MM/DD
+  if(!str) return null;
+  const parts = str.trim().split("-");
+  if(parts.length === 3){ const mo = +parts[1], d = +parts[2]; if(mo && d) return { month:mo, day:d }; }
+  if(parts.length === 2){ const mo = +parts[0], d = +parts[1]; if(mo && d) return { month:mo, day:d }; }
+  if(str.includes("/")){ const p = str.split("/"); const mo = +p[0], d = +p[1]; if(mo && d) return { month:mo, day:d }; }
+  return null;
+}
+function daysUntilBirthday(str){                  // days until next occurrence (0 = today)
+  const b = parseBirthday(str);
+  if(!b) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  let next = new Date(now.getFullYear(), b.month-1, b.day);
+  if(next < now) next = new Date(now.getFullYear()+1, b.month-1, b.day);
+  return Math.round((next - now) / 86400000);
+}
+const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+function bdayLabel(str){
+  const b = parseBirthday(str);
+  return b ? `${MONTHS[b.month-1]} ${b.day}` : str;
+}
+function bdayInfo(m){
+  const d = daysUntilBirthday(m.birthday);
+  if(d === null) return { text:"NO BIRTHDAY SET", isToday:false, days:null };
+  if(d === 0)    return { text:"\uD83C\uDF89 TODAY \u2022 HAPPY BIRTHDAY", isToday:true, days:0 };
+  if(d <= 7)     return { text:`BIRTHDAY IN ${d} DAYS \u2022 ${bdayLabel(m.birthday)}`, isToday:false, days:d };
+  return { text:`BIRTHDAY \u2022 ${bdayLabel(m.birthday)}`, isToday:false, days:d };
+}
+
+/* ---------------- PERSISTENCE ---------------- */
+function loadState(){
+  try{
+    const m = localStorage.getItem(LS.members);     if(m){ const a = JSON.parse(m); if(Array.isArray(a) && a.length) state.members = a; }
+    const al = localStorage.getItem(LS.albums);     if(al){ const a = JSON.parse(al); if(Array.isArray(a) && a.length) state.albums = a; }
+    const p = localStorage.getItem(LS.passwords);   if(p) state.passwords = JSON.parse(p) || {};
+    const s = localStorage.getItem(LS.session);     if(s) state.session = JSON.parse(s);
+  }catch(e){ console.warn("loadState", e); }
+}
+function saveMembers(){   try{ localStorage.setItem(LS.members, JSON.stringify(state.members)); }catch(e){} }
+function saveAlbums(){    try{ localStorage.setItem(LS.albums, JSON.stringify(state.albums)); }catch(e){} }
+function savePasswords(){ try{ localStorage.setItem(LS.passwords, JSON.stringify(state.passwords)); }catch(e){} }
+function saveSession(){   try{ state.session ? localStorage.setItem(LS.session, JSON.stringify(state.session)) : localStorage.removeItem(LS.session); }catch(e){} }
+
+/* ---------------- SESSION HELPERS ---------------- */
+const me       = () => state.session ? state.members.find(m => m.id === state.session.memberId) || null : null;
+const isGuest  = () => !!me()?.isGuest;
+const isAdmin  = () => !!me()?.isAdmin && !isGuest();
+const isHerman = () => state.session?.memberId === ADMIN_ID;
+
+/* ---------------- R2 API (via Worker) ---------------- */
+function fileURL(key){
+  if(!key) return "";
+  return `${R2_CONFIG.API}/file/${key.split('/').map(encodeURIComponent).join('/')}`;
+}
+
+function saveTrash(){
+  try{ localStorage.setItem(LS.trash, JSON.stringify(state.trash)); }catch(e){}
+}
+
+function saveBoard(){
+  try{ localStorage.setItem(LS.board, JSON.stringify(state.boardPosts)); }catch(e){}
+  fetch(`${R2_CONFIG.API}/board`, {
+    method: "POST",
+    headers: { "Content-Type":"application/json", "X-Famvault-Role":"member" },
+    body: JSON.stringify({ posts: state.boardPosts })
+  }).catch(e => console.warn("board sync failed, local only", e));
+}
+
+async function apiListBoard(){
+  try{
+    const res = await fetch(`${R2_CONFIG.API}/board`);
+    if(res.ok){
+      const data = await res.json();
+      if(Array.isArray(data.posts)){
+        state.boardPosts = data.posts;
+        try{ localStorage.setItem(LS.board, JSON.stringify(state.boardPosts)); }catch(e){}
+      }
+    }
+  }catch(e){ console.warn("board load failed", e); }
+}
+
+async function apiListPhotos(){
+  try{
+    const res = await fetch(`${R2_CONFIG.API}/photos`);
+    if(!res.ok) throw new Error("FETCH FAILED");
+    const data = await res.json();
+    if(Array.isArray(data.photos)){
+      state.photos = data.photos.map(p => ({ ...p, size: p.size || p.fileSize || 0 }));
+    }
+  }catch(e){ toast("FAILED TO LOAD PHOTOS: " + e.message); console.warn(e); }
+}
+
+async function apiUpload(file, caption, album, uploadedBy, taggedIds){
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("caption", caption);
+  fd.append("album", album);
+  fd.append("uploadedBy", uploadedBy);
+  fd.append("tagged", (taggedIds || []).join(","));
+  const res = await fetch(`${R2_CONFIG.API}/upload`, {
+    method: "POST",
+    headers: { "X-Famvault-Role": "member" },   // worker rejects guests
+    body: fd,
+  });
+  if(!res.ok){
+    let msg = "UPLOAD FAILED";
+    try{ msg = (await res.json()).error || msg; }catch(e){}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+async function apiDeletePhoto(p){
+  // p can be an id string or a full photo object
+  const id = typeof p === "string" ? p : p.id;
+  const key = typeof p === "object" ? p.key : null;
+  const headers = { "X-Famvault-Role": "member" };
+  let res = await fetch(`${R2_CONFIG.API}/photos/${encodeURIComponent(id)}`, { method:"DELETE", headers });
+  // fallback: try deleting by R2 object key
+  if(!res.ok && key){
+    res = await fetch(`${R2_CONFIG.API}/file/${(key.split("/").map(encodeURIComponent).join("/"))}`, { method:"DELETE", headers });
+  }
+  if(!res.ok){
+    let msg = "DELETE FAILED";
+    try{ msg = (await res.json()).error || msg; }catch(e){}
+    throw new Error(msg);
+  }
+}
+
+/* ---------------- ACTIONS ---------------- */
+function login(memberId){
+  const val = state.pwInput.trim();
+  if(!val){ state.pwError = "ENTER PASSWORD \u2022 CANNOT BE EMPTY"; render(); return; }
+  const stored = state.passwords[memberId];
+  if(!stored){                                  // first login sets the password
+    state.passwords[memberId] = val;
+    savePasswords();
+  }else if(stored !== val){
+    state.pwError = "WRONG PASSWORD \u2022 TRY AGAIN";
+    render();
+    return;
+  }
+  state.session = { memberId, at: Date.now() };
+  saveSession();
+  state.pendingMember = null; state.pwInput = ""; state.pwError = "";
+  render();
+  apiListPhotos().then(render);
+}
+
+function continueAsGuest(){
+  const id = `guest_${Date.now().toString(36)}`;
+  const g = {
+    id, name:`GUEST_${id.slice(-4).toUpperCase()}`, handle:id, relation:"GUEST",
+    bio:"VIEW ONLY GUEST \u2022 CANNOT DOWNLOAD OR EDIT",
+    birthday:"01-01", color:"#5A5A80", initial:"G", isGuest:true, isAdmin:false,
+  };
+  state.members.push(g);
+  saveMembers();
+  state.session = { memberId:id, at:Date.now() };
+  saveSession();
+  render();
+  apiListPhotos().then(render);
+}
+
+function logout(){
+  state.session = null;
+  saveSession();
+  state.tab = "HOME"; state.albumFilter = "ALL"; state.search = "";
+  render();
+}
+
+function pickMember(id){
+  state.pendingMember = state.members.some(m => m.id === id) ? id : null;
+  state.pwInput = ""; state.pwError = "";
+  render();
+  setTimeout(() => $("#pw-input")?.focus(), 50);
+}
+
+function cancelLogin(){ state.pendingMember = null; state.pwInput = ""; state.pwError = ""; render(); }
+
+function setTab(tab){
+  state.tab = tab;
+  render();
+}
+
+function addAlbum(){
+  const name = state.newAlbumTitle.trim().toUpperCase();
+  if(!name) return false;
+  if(state.albums.includes(name)){ toast("ALBUM ALREADY EXISTS"); return false; }
+  state.albums.push(name);
+  saveAlbums();
+  state.uploadAlbum = name;
+  state.albumFilter = name;
+  state.newAlbumTitle = "";
+  return true;
+}
+
+function renameAlbum(oldName){
+  const next = state.renameAlbumName.trim().toUpperCase();
+  if(!next || next === oldName){ state.renameAlbum = null; render(); return; }
+  if(state.albums.includes(next)){ toast("ALBUM ALREADY EXISTS"); return; }
+  state.albums = state.albums.map(a => a === oldName ? next : a);
+  state.photos = state.photos.map(p => p.album === oldName ? { ...p, album:next } : p);
+  if(state.albumFilter === oldName) state.albumFilter = next;
+  if(state.uploadAlbum === oldName) state.uploadAlbum = next;
+  state.renameAlbum = null;
+  saveAlbums();
+  render();
+}
+
+async function deleteAlbum(name){
+  const protectedAlbums = ["UNSORTED", "TRASH"];
+  if(protectedAlbums.includes(name)){ toast(name + " CANNOT BE DELETED \u2014 SYSTEM ALBUM"); return; }
+  if(!state.albums.includes(name)){ toast("ALBUM NOT FOUND"); return; }
+  const count = state.photos.filter(p => (p.album || "UNSORTED") === name).length;
+  if(!confirm(`DELETE ALBUM "${name}"? ${count} PHOTOS WILL MOVE TO "UNSORTED".`)) return;
+  const oldName = name;
+  try{
+    // Update UI immediately - don't wait for Worker
+    state.albums = state.albums.filter(a => a !== oldName);
+    if(!state.albums.includes("UNSORTED")) state.albums.push("UNSORTED");
+    state.photos = state.photos.map(p => (p.album || "UNSORTED") === oldName ? { ...p, album:"UNSORTED" } : p);
+    if(state.albumFilter === oldName) state.albumFilter = "ALL";
+    if(state.uploadAlbum === oldName) state.uploadAlbum = "UNSORTED";
+    saveAlbums();
+    render();
+    toast(`ALBUM ${oldName} DELETED \u2014 ${count} MOVED TO UNSORTED`);
+  }catch(e){
+    toast("DELETE FAILED: " + (e && e.message ? e.message : e));
+    return;
+  }
+  // Background sync to Worker with 3s timeout - never freeze UI
+  try{
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    await fetch(`${R2_CONFIG.API}/photos/update-album`, {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "X-Famvault-Role":"member" },
+      body: JSON.stringify({ from: oldName, to: "UNSORTED" }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+  }catch(e){ console.warn("update-album worker failed (local already done)", e); }
+}
+
+function saveBio(){
+  const m = state.members.find(x => x.id === state.bioEditId);
+  if(!m) return;
+  if(isGuest()) return;
+  if(!isAdmin() && m.id !== me()?.id) return;
+  const bio = state.bioDraft.trim();
+  if(!bio){ toast("BIO CANNOT BE EMPTY"); return; }
+  if(bio.length > 150){ toast("MAX 150 CHARS"); return; }
+  m.bio = bio.toUpperCase();
+  state.bioEditId = null; state.bioDraft = "";
+  saveMembers();
+  render();
+}
+
+function addMember(){
+  if(!isAdmin()) return;
+  const f = state.addMemberForm;
+  const name = f.name.trim();
+  if(!name){ toast("NAME REQUIRED"); return; }
+  let bd = f.birthday.trim() || "01-01";
+  if(/^\d{1,2}\/\d{1,2}$/.test(bd)){ const [a,b] = bd.split("/").map(x => x.padStart(2,"0")); bd = `${a}-${b}`; }
+  const id = name.toLowerCase().replace(/\s+/g,"_").replace(/[^a-z0-9_]/g,"") + "_" + Date.now().toString(36).slice(-4);
+  state.members.push({
+    id, name: name.toUpperCase(), handle: id,
+    relation: (f.relation || "FAMILY").toUpperCase(),
+    bio: (f.bio || "NEW MEMBER OF FAM VAULT").toUpperCase(),
+    birthday: bd, color: f.color, initial: name[0].toUpperCase(),
+    isGuest: !!f.isGuest,
+    isAdmin: f.isGuest ? false : !!f.isAdmin,
+  });
+  saveMembers();
+  state.addMemberOpen = false;
+  state.addMemberForm = { name:"", relation:"", birthday:"", bio:"", color:"#8B5CF6", isAdmin:false, isGuest:false };
+  render();
+}
+
+function editMemberOpen(m){
+  if(!isAdmin()) return;
+  state.editMemberId = m.id;
+  state.editMemberForm = { name:m.name, relation:m.relation, birthday:m.birthday, bio:m.bio, color:m.color, isAdmin:m.isAdmin, isGuest:m.isGuest };
+  render();
+}
+
+function editMemberSave(){
+  if(!isAdmin() || !state.editMemberId) return;
+  const f = state.editMemberForm;
+  const cur = state.members.find(m => m.id === state.editMemberId);
+  if(!cur) return;
+  if(state.editMemberId === me()?.id && !f.isAdmin && state.members.filter(x => x.id !== me().id && x.isAdmin).length === 0){
+    toast("CANNOT REMOVE YOUR OWN ADMIN IF YOU ARE LAST ADMIN");
+    return;
+  }
+  Object.assign(cur, {
+    name: f.name.trim().toUpperCase() || cur.name,
+    relation: f.relation.trim().toUpperCase() || cur.relation,
+    birthday: f.birthday.trim() || cur.birthday,
+    bio: f.bio.trim().toUpperCase() || cur.bio,
+    color: f.color || cur.color,
+    isGuest: !!f.isGuest,
+    isAdmin: f.isGuest ? false : !!f.isAdmin,
+    initial: (f.name.trim()[0] || cur.initial).toUpperCase(),
+  });
+  state.editMemberId = null;
+  saveMembers();
+  render();
+}
+
+function removeMember(id){
+  if(!isAdmin() && !isHerman()){ toast("ONLY ADMIN CAN REMOVE"); return; }
+  if(id === me()?.id){ toast("CANNOT REMOVE YOURSELF"); return; }
+  const m = state.members.find(x => x.id === id);
+  if(!m){ toast("MEMBER NOT FOUND"); return; }
+  const adminCount = state.members.filter(x => x.isAdmin && !x.isGuest).length;
+  if(m.isAdmin && adminCount <= 1){ toast("CANNOT REMOVE LAST ADMIN - MAKE ANOTHER ADMIN FIRST"); return; }
+  if(!confirm(`REMOVE MEMBER "${m.name}"? THIS CANNOT BE UNDONE. PASSWORD WILL BE DELETED.`)) return;
+  state.members = state.members.filter(x => x.id !== id);
+  delete state.passwords[id];
+  saveMembers(); savePasswords();
+  toast(m.name + " REMOVED");
+  render();
+}
+
+function adminSetPassword(id){
+  if(!isAdmin()) return;
+  const val = (state.adminPwDrafts[id] || "").trim();
+  if(!val){ toast("ENTER PASSWORD"); return; }
+  state.passwords[id] = val;
+  delete state.adminPwDrafts[id];
+  savePasswords();
+  render();
+}
+
+function adminClearPassword(id){
+  if(!isAdmin()) return;
+  const m = state.members.find(x => x.id === id);
+  if(!confirm(`RESET PASSWORD FOR ${m?.name}? USER WILL NEED TO SET NEW ON NEXT LOGIN.`)) return;
+  delete state.passwords[id];
+  savePasswords();
+  render();
+}
+
+/* upload (bulk-capable: pick many photos/videos at once) */
+function onUploadFiles(fileList){
+  const files = Array.from(fileList || []).filter(f => f && (f.type.startsWith("image/") || f.type.startsWith("video/")));
+  if(!files.length) return;
+  // reject files over 100MB before queueing
+  const tooBig = files.filter(f => f.size > 100*1024*1024);
+  if(tooBig.length){
+    toast(tooBig[0].name + " TOO BIG >100MB - COMPRESS FIRST");
+    return;
+  }
+  // dedupe by name+size+lastModified, REPLACE selection (cap 50 per batch)
+  const seen = new Set();
+  const deduped = [];
+  for(const f of files){
+    const k = f.name + "|" + f.size + "|" + f.lastModified;
+    if(!seen.has(k)){ seen.add(k); deduped.push(f); }
+  }
+  state.uploadFiles = deduped.slice(0, 50);
+  if(deduped.length > 50) toast("MAX 50 FILES PER BATCH");
+  if(state.uploadPreview) URL.revokeObjectURL(state.uploadPreview);
+  state.uploadPreview = state.uploadFiles[0].type.startsWith("image/")
+    ? URL.createObjectURL(state.uploadFiles[0])
+    : null;
+  render();
+}
+
+/* client-side image compression: downscale to 1920px max side, jpeg q0.8 */
+async function compressImage(file){
+  if(file.type.startsWith("video/") || file.size < 2*1024*1024) return file;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 1920;
+      let w = img.width, h = img.height;
+      if(w > max || h > max){
+        if(w > h){ h = h * max / w; w = max; } else { w = w * max / h; h = max; }
+      }
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      c.toBlob(b => resolve(b ? new File([b], file.name, { type:"image/jpeg" }) : file), "image/jpeg", 0.8);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/* concurrency pool: uploads N files in parallel (default 4) for speed */
+async function uploadPool(files, worker, concurrency){
+  const results = new Array(files.length);
+  let next = 0;
+  async function lane(){
+    while(next < files.length){
+      const idx = next++;
+      try{ results[idx] = await worker(files[idx]); }
+      catch(e){ results[idx] = { error: e.message || "UPLOAD FAILED" }; }
+      state.uploadDone = (state.uploadDone || 0) + 1;
+      // update progress bar in place to avoid full re-render flicker
+      const bar = document.getElementById("upload-progress");
+      if(bar && state.uploadTotal){
+        const pct = Math.round((state.uploadDone / state.uploadTotal) * 100);
+        bar.querySelector("#upload-pct").textContent = pct + "%";
+        bar.querySelector("#upload-count").textContent = "UPLOADING \u2022 " + state.uploadDone + " / " + state.uploadTotal;
+        bar.querySelector("#upload-bar-fill").style.width = pct + "%";
+      } else if(state.uploadDone % 2 === 0){
+        render();
+      }
+    }
+  }
+  const lanes = [];
+  for(let k = 0; k < Math.min(concurrency || 4, files.length); k++) lanes.push(lane());
+  await Promise.all(lanes);
+  return results;
+}
+
+async function doUpload(){
+  if(isGuest()){ toast("GUESTS CANNOT UPLOAD"); return; }
+  const files = state.uploadFiles || [];
+  if(!files.length){ toast("PICK A PHOTO FIRST"); return; }
+  state.uploading = true;
+  state.uploadDone = 0;
+  state.uploadTotal = files.length;
+  render();
+  try{
+    // dedupe again right before upload (belt & suspenders)
+    const seen = new Set();
+    const uniqueFiles = files.filter(f => {
+      const k = f.name + "|" + f.size + "|" + f.lastModified;
+      if(seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+    state.uploadTotal = uniqueFiles.length;
+    const album = state.uploadAlbum || state.albums[0] || "UNSORTED";
+    const uploadedBy = me()?.id || ADMIN_ID;
+    const results = await uploadPool(uniqueFiles, async f => {
+      const fileToUpload = await compressImage(f);
+      return apiUpload(fileToUpload, state.uploadCaption || "", album, uploadedBy, state.taggedIds);
+    }, 4);
+    const ok = results.filter(r => r && r.photo);
+    const bad = results.filter(r => r && r.error);
+    ok.forEach(r => state.photos.unshift(r.photo));
+    if(ok.length) toast(ok.length + (ok.length === 1 ? " MEMORY UPLOADED \u2714" : " MEMORIES UPLOADED \u2714"));
+    if(bad.length) toast(bad.length + " FAILED: " + (bad[0].error || "ERROR"));
+    if(ok.length){
+      state.uploadOpen = false;
+      state.uploadFiles = null; state.uploadPreview = null;
+      state.uploadCaption = ""; state.taggedIds = [];
+    }
+  }catch(err){
+    toast("UPLOAD FAILED: " + err.message);
+  }finally{
+    // always clear the selection so nothing can be double-submitted
+    state.uploadFiles = null;
+    if(state.uploadPreview){ URL.revokeObjectURL(state.uploadPreview); state.uploadPreview = null; }
+  }
+  (state.uploadFiles || []).forEach(f => { if(f._previewUrl) URL.revokeObjectURL(f._previewUrl); });
+  state.uploading = false;
+  state.uploadDone = 0; state.uploadTotal = 0;
+  render();
+}
+
+/* delete photo (lightbox) â€” moves to TRASH, not permanent */
+async function deleteCurrentPhoto(){
+  const p = state.lightbox;
+  if(!p || isGuest()) return;
+  if(!isAdmin() && p.uploadedBy !== me()?.id){ toast("ONLY ADMIN OR UPLOADER CAN TRASH"); return; }
+  await moveToTrash(p.id);
+  toast("MOVED TO TRASH");
+  render();
+}
+
+/* ---------------- TRASH MOVE / RESTORE ---------------- */
+async function moveToTrash(ids){
+  const idArr = Array.isArray(ids) ? ids : [ids];
+  const toTrash = state.photos.filter(p => idArr.includes(p.id));
+  if(!toTrash.length) return;
+  toTrash.forEach(p => state.trash.unshift({ ...p, trashedAt: Date.now(), originalAlbum: p.album }));
+  state.photos = state.photos.filter(p => !idArr.includes(p.id));
+  if(state.lightbox && idArr.includes(state.lightbox.id)) state.lightbox = null;
+  saveTrash();
+  try{
+    await fetch(`${R2_CONFIG.API}/photos/trash`, {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "X-Famvault-Role":"member" },
+      body: JSON.stringify({ ids: idArr, action: "trash" })
+    });
+  }catch(e){ console.warn("trash sync failed, local only", e); }
+  render();
+}
+
+async function restoreFromTrash(id){
+  const item = state.trash.find(t => t.id === id);
+  if(!item) return;
+  state.photos.unshift({ ...item, album: item.originalAlbum || "UNSORTED" });
+  state.trash = state.trash.filter(t => t.id !== id);
+  saveTrash();
+  try{
+    await fetch(`${R2_CONFIG.API}/photos/trash`, {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "X-Famvault-Role":"member" },
+      body: JSON.stringify({ ids:[id], action: "restore" })
+    });
+  }catch(e){ console.warn("restore sync failed, local only", e); }
+  render();
+}
+
+async function permanentDelete(id){
+  if(!confirm("PERMANENTLY DELETE? CANNOT BE UNDONE.")) return;
+  const item = state.trash.find(t => t.id === id);
+  state.trash = state.trash.filter(t => t.id !== id);
+  saveTrash();
+  try{ await apiDeletePhoto(item || id); toast("DELETED FOREVER"); }
+  catch(e){ toast(e.message || "DELETE FAILED"); }
+  render();
+}
+
+async function emptyTrash(){
+  if(!state.trash.length) return;
+  if(!confirm(`PERMANENTLY DELETE ALL ${state.trash.length} ITEMS? CANNOT BE UNDONE.`)) return;
+  const items = state.trash;
+  state.trash = [];
+  saveTrash();
+  for(const it of items){
+    try{ await apiDeletePhoto(it); }catch(e){ console.warn(e); }
+  }
+  toast("TRASH EMPTIED");
+  render();
+}
+
+async function restoreAllTrash(){
+  const items = [...state.trash];
+  for(const it of items){
+    state.photos.unshift({ ...it, album: it.originalAlbum || "UNSORTED" });
+  }
+  state.trash = [];
+  saveTrash();
+  try{
+    await fetch(`${R2_CONFIG.API}/photos/trash`, {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "X-Famvault-Role":"member" },
+      body: JSON.stringify({ ids: items.map(i => i.id), action: "restore" })
+    });
+  }catch(e){ console.warn(e); }
+  toast("RESTORED " + items.length + " ITEMS");
+  render();
+}
+
+async function downloadPhoto(p){
+  if(isGuest()){ toast("GUESTS CANNOT DOWNLOAD"); return; }
+  const name = `${p.caption || "photo"}_${p.album}_${p.date}`.replace(/\s+/g,"_").slice(0,80) + ".jpg";
+  try{
+    // fetch as blob so the Worker's CORS headers apply, then save locally
+    const res = await fetch(p.src || fileURL(p.key));
+    if(!res.ok) throw new Error("FETCH FAILED");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    // fallback: direct link
+    const a = document.createElement("a");
+    a.href = p.src || fileURL(p.key);
+    a.download = name;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function render(){
+  const root = $("#app");
+  root.innerHTML = state.session ? appHTML() : loginHTML();
+  bind();
+}
+
+/* ---------------- LOGIN SCREEN ---------------- */
+function loginHTML(){
+  const guests = state.members.filter(m => m.isGuest);
+  const pending = state.pendingMember ? state.members.find(m => m.id === state.pendingMember) : null;
+  const firstLogin = pending ? !state.passwords[pending.id] : false;
+
+  return `
+  <div class="login">
+    <div class="login-inner">
+      <h1 class="logo-big">FAM<br>VAULT</h1>
+      <div class="login-sub">BY HERMAN \u2022 PRIVATE FAMILY ALBUM \u2022 EST 1999</div>
+      <div class="member-grid">
+        ${state.members.filter(m => !m.isGuest).map(m => `
+          <button class="member-card" data-login="${m.id}">
+            <div class="member-top">
+              ${avatar(m)}
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="dot"></span>
+                <span style="font-size:8px;letter-spacing:.12em;color:var(--dim)">${state.passwords[m.id] ? "LOCKED" : "NEW"}</span>
+              </div>
+            </div>
+            <div class="member-name">${esc(m.name)}${m.isAdmin ? '<span class="tag admin">ADMIN</span>' : ""}</div>
+            <div class="member-handle">${esc(m.handle)}</div>
+            <div class="member-relation">${esc(m.relation)}</div>
+          </button>
+        `).join("")}
+      </div>
+      <div class="login-actions">
+        <button class="btn" style="opacity:.6;cursor:not-allowed" disabled>SELECT A MEMBER</button>
+        <button class="btn" id="btn-guest">CONTINUE AS GUEST \u2022 VIEW ONLY</button>
+      </div>
+      <div style="margin-top:28px;display:flex;justify-content:center">
+        <div style="padding:8px 16px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);font-size:10px;letter-spacing:.25em;color:var(--dim)">
+          VAULT CONTAINS ${state.photos.length} MEMORIES \u2022 PRIVATE \u2022 FAMILY ONLY
+        </div>
+      </div>
+      ${guests.length ? `<div style="margin-top:12px;font-size:9px;letter-spacing:.2em;color:var(--dim)">GUESTS: ${guests.length} \u2022 VIEW ONLY</div>` : ""}
+    </div>
+
+    ${pending ? `
+    <div class="overlay">
+      <div class="backdrop" data-action="cancel-login"></div>
+      <div class="modal">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div style="font-size:12px;font-weight:800;letter-spacing:.2em;color:#fff">LOGIN AS ${esc(pending.name)}</div>
+          <button class="x" data-action="cancel-login">\u2715</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:12px;border-radius:16px;background:var(--surface2);border:1px solid var(--line)">
+          ${avatar(pending, "md")}
+          <div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:.15em;color:#fff">${esc(pending.name)}</div>
+            <div style="font-size:10px;letter-spacing:.15em;color:var(--dim)">${esc(pending.relation)} \u2022 ${firstLogin ? "FIRST TIME \u2022 SET PASSWORD" : "PASSWORD PROTECTED"}</div>
+          </div>
+          <div class="dot" style="margin-left:auto;background:${firstLogin ? "var(--amber)" : "var(--ok)"};box-shadow:0 0 8px ${firstLogin ? "var(--amber)" : "var(--ok)"}"></div>
+        </div>
+        <div class="field-label">USERNAME \u2022 READ-ONLY</div>
+        <input class="input" value="${esc(pending.handle)}" disabled style="opacity:.7;cursor:not-allowed;text-transform:lowercase">
+        <div style="margin-top:16px">
+          <div class="field-label" style="color:var(--muted)">PASSWORD ${firstLogin ? '<span style="color:var(--amber)">\u2022 SET NEW PASSWORD</span>' : ""}</div>
+          <input id="pw-input" type="password" class="input" placeholder="${firstLogin ? "CREATE PASSWORD" : "ENTER PASSWORD"}"
+            style="border-color:rgba(139,92,246,.4)" value="${esc(state.pwInput)}" autocomplete="off">
+          ${state.pwError ? `<div class="err-box">${esc(state.pwError)}</div>` : ""}
+          ${firstLogin && !state.pwError ? `<div style="margin-top:8px;font-size:9px;letter-spacing:.12em;color:var(--amber)">FIRST TIME \u2022 THIS PASSWORD WILL BE SAVED FOR NEXT LOGIN \u2022 ADMIN CAN RESET IN ADMIN TAB</div>` : ""}
+        </div>
+        <div style="margin-top:20px;display:flex;gap:10px">
+          <button class="btn" data-action="cancel-login">CANCEL</button>
+          <button class="btn primary" data-action="do-login" data-id="${pending.id}" style="flex:1">${firstLogin ? "SET & LOGIN \u2192" : "LOGIN \u2192"}</button>
+        </div>
+        <div style="margin-top:14px;text-align:center;font-size:9px;letter-spacing:.2em;color:#3A3A5A">VAULT SECURE \u2022 LOCAL PASSWORD \u2022 STORED IN famvault_passwords</div>
+      </div>
+    </div>` : ""}
+  </div>`;
+}
+
+/* ---------------- MAIN APP ---------------- */
+function appHTML(){
+  const m = me();
+  const adminTab = isHerman() ? `<button class="tab ${state.tab === "ADMIN" ? "active" : ""} ${state.tab === "ADMIN" ? "" : "tab-admin-style"}" data-tab="ADMIN"
+      style="${state.tab === "ADMIN" ? "" : "background:#1A1220;border-color:#3A1A2A;color:var(--danger)"}">ADMIN</button>` : "";
+  const trashTab = (isAdmin() || isHerman()) ? `<button class="tab ${state.tab === "TRASH" ? "active" : ""}" data-tab="TRASH" style="${state.tab === "TRASH" ? "" : "background:#1A1220;border-color:#3A1A2A;color:var(--danger)"}">TRASH ${state.trash.length ? `(${state.trash.length})` : ""}</button>` : "";
+  const bdayToday = state.members.filter(x => daysUntilBirthday(x.birthday) === 0);
+
+  return `
+  <div class="app">
+    ${bdayToday.length ? `
+    <div style="position:relative;z-index:50;width:100%;background:linear-gradient(90deg,#8B5CF6,#6366F1,#EC4899);border-bottom:1px solid rgba(196,181,253,.3);padding:12px 16px;text-align:center">
+      <span style="font-size:14px;font-weight:800;letter-spacing:.2em;color:#fff">\uD83C\uDF89 IT'S ${bdayToday.map(x => x.name).join(" & ")}'S BIRTHDAY TODAY! \uD83C\uDF89</span>
+    </div>` : ""}
+
+    ${isGuest() ? `
+    <div class="guest-bar">
+      <div class="guest-bar-in" style="justify-content:space-between">
+        <span>GUEST VIEW \u2022 VIEW ONLY \u2022 CANNOT DOWNLOAD \u2022 CANNOT EDIT \u2022 CANNOT UPLOAD</span>
+        <span style="font-size:9px;color:var(--dim)">INVITED VIA GUEST BUTTON \u2022 VIEW ONLY</span>
+      </div>
+    </div>` : ""}
+
+    <header class="header">
+      <div class="header-in">
+        <div class="who">
+          <span class="dot"></span>
+          <span style="font-size:11px;letter-spacing:.18em;color:var(--muted)">Logged as: <b class="who-b" style="color:#fff">${esc(m?.handle || "")}${isAdmin() ? ' <span class="tag admin" style="margin-left:4px">ADMIN</span>' : ""}${isGuest() ? ' <span class="tag guest" style="margin-left:4px;background:rgba(90,90,128,.2);border:1px solid rgba(90,90,128,.3);color:var(--muted)">GUEST</span>' : ""}</b>
+            &nbsp;\u2022 Total: ${state.photos.length} \u2022 ${new Date().toLocaleDateString()}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="display:none;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:10px;letter-spacing:.18em;color:var(--dim)" class="desktop-only"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent)"></span> VAULT SECURE</span>
+          <button class="btn primary" data-action="logout">LOGOUT</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="hero">
+      <div style="display:flex;flex-direction:column;gap:20px;justify-content:space-between;align-items:flex-start" class="hero-row">
+        <div>
+          <h1 style="font-size:44px;font-weight:800;letter-spacing:.12em;line-height:.95;background:linear-gradient(180deg,#EDE9FE 0%,#C4B5FD 35%,#8B5CF6 70%,#6366F1 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 16px rgba(139,92,246,.55))">FAM VAULT</h1>
+          <div style="margin-top:10px;font-size:11px;letter-spacing:.32em;color:var(--muted);font-weight:700">BY HERMAN \u2022 PRIVATE FAMILY ALBUM</div>
+        </div>
+        <input class="input search" id="search-input" placeholder="SEARCH VAULT..." value="${esc(state.search)}" style="border-radius:999px">
+      </div>
+
+      <div class="tabs" style="padding:28px 0 0">
+        ${[["HOME","HOME"],["ALBUMS","ALBUMS"],["MEMBERS","MEMBERS"],["BOARD","BOARD"]].map(([k,l]) =>
+          `<button class="tab ${state.tab === k ? "active" : ""}" data-tab="${k}">${l}</button>`).join("")}
+        ${adminTab}
+        ${trashTab}
+        ${isAdmin() || isHerman() ? `<button class="tab ${state.tab === "TRASH" ? "active" : ""} ${state.tab === "TRASH" ? "" : "tab-admin-style"}" data-tab="TRASH" style="${state.tab === "TRASH" ? "" : "background:#1A1220;border-color:#3A1A2A;color:var(--danger)"}>TRASH${state.trash.length ? ` (${state.trash.length})` : ""}</button>` : ""}
+        ${!isGuest() ? `<button class="btn" data-action="open-upload" style="height:36px">UPLOAD</button>` : ""}
+      </div>
+    </div>
+
+    <div class="content">
+      ${tabHTML()}
+    </div>
+
+    ${!isGuest() ? `<button class="fab" data-action="open-upload">+</button>` : ""}
+  </div>
+
+  ${uploadModalHTML()}
+  ${lightboxHTML()}
+  ${addMemberModalHTML()}
+  ${editMemberModalHTML()}
+  ${newAlbumModalHTML()}
+  `;
+}
+
+/* ---------------- TAB CONTENT ---------------- */
+function tabHTML(){
+  switch(state.tab){
+    case "HOME":   return homeHTML();
+    case "ALBUMS": return albumsHTML();
+    case "MEMBERS":return membersHTML();
+    case "BOARD":  return boardHTML();
+    case "TRASH":  return (isAdmin() || isHerman()) ? trashHTML() : homeHTML();
+    case "ADMIN":  return (isAdmin() || isHerman()) ? adminHTML() : homeHTML();
+    default:       return homeHTML();
+  }
+}
+
+function filteredPhotos(){
+  let list = activePhotos();
+  if(state.tab === "ALBUMS" && state.albumFilter !== "ALL") list = list.filter(p => (p.album || "UNSORTED") === state.albumFilter);
+  if(state.search.trim()){
+    const q = state.search.toLowerCase();
+    list = list.filter(p => (p.caption || "").toLowerCase().includes(q) || (p.album || "").toLowerCase().includes(q));
+  }
+  return list;
+}
+
+function photoCardHTML(p){
+  const up = state.members.find(m => m.id === p.uploadedBy);
+  const media = p.type === "video"
+    ? `<video src="${esc(p.src || fileURL(p.key))}" muted playsinline></video>`
+    : `<img src="${esc(p.src || fileURL(p.key))}" loading="lazy" decoding="async" alt="${esc(p.caption)}">`;
+  return `
+  <div class="photo-card" data-photo="${esc(p.id)}" style="${state.selectMode ? "position:relative;cursor:pointer;border:1px solid " + (state.selectedIds.has(p.id) ? "var(--accent)" : "transparent") : ""}">
+    ${state.selectMode && !isGuest() ? `<input type="checkbox" ${state.selectedIds.has(p.id) ? "checked" : ""} data-select="${esc(p.id)}" style="position:absolute;top:10px;left:10px;z-index:5;width:18px;height:18px;accent-color:var(--accent)">` : ""}
+    ${media}
+    <span class="photo-album-tag">${esc(p.album || "UNSORTED")}</span>
+    <span class="photo-like">\u2665 ${p.likes || 0}</span>
+    <div class="photo-foot" style="padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div style="min-width:0">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:#E6E6F0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.caption)}</div>
+        <div class="photo-byline">${esc(p.date || "")} \u2022 BY ${esc(up?.name || "UNKNOWN")}</div>
+      </div>
+      ${!isGuest() ? `<button class="btn white" style="height:24px;padding:0 10px;font-size:8px" data-action="download" data-id="${esc(p.id)}">\u2B07</button>` : ""}
+    </div>
+  </div>`;
+}
+
+function homeHTML(){
+  const list = filteredPhotos();
+  const visible = list.slice(0, state.visibleLimit || 100);
+  const last = visible[0];
+  const total = activePhotos().length;
+  return `
+  <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:24px" class="home-stats">
+    <div class="card">
+      <div style="font-size:10px;letter-spacing:.3em;color:var(--dim);font-weight:700;margin-bottom:14px">VAULT STATUS</div>
+      <div class="stat3">
+        <div class="stat-box"><div class="stat-lbl">PHOTOS</div><div style="margin-top:4px;font-size:13px;font-weight:700;color:#fff">${total}</div></div>
+        <div class="stat-box"><div class="stat-lbl">LAST ADD</div><div style="margin-top:4px;font-size:13px;font-weight:700;color:#C4B5FD">${last ? esc(last.date) : "\u2014"}</div></div>
+        <div class="stat-box"><div class="stat-lbl">STATUS</div><div style="margin-top:4px;font-size:11px;font-weight:700;color:var(--ok);letter-spacing:.15em">LIVE</div></div>
+      </div>
+      <div style="margin-top:14px;height:6px;border-radius:999px;background:var(--surface2);overflow:hidden">
+        <div style="height:100%;width:78%;background:linear-gradient(90deg,#6366F1,#8B5CF6);border-radius:999px"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="font-size:10px;letter-spacing:.3em;color:var(--dim);font-weight:700">WHO'S HERE</div>
+        <span style="font-size:9px;padding:4px 8px;border-radius:999px;background:rgba(16,185,129,.2);color:var(--ok);border:1px solid rgba(16,185,129,.3)">${state.members.length} MEMBERS</span>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px">
+        ${state.members.slice(0,6).map(x => avatar(x, "sm")).join("")}
+      </div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,#1E1E32,#151525);border-color:rgba(139,92,246,.3);position:relative;overflow:hidden">
+      <div style="font-size:10px;letter-spacing:.3em;color:var(--muted);font-weight:700">NEXT EVENT</div>
+      <div style="margin-top:10px;font-size:16px;font-weight:800;letter-spacing:.12em;color:#fff">FAMILY BBQ \u2022 DEC 24</div>
+      <button class="btn white" style="margin-top:14px;height:32px;font-size:10px" data-action="goto-bbq">VIEW ALBUM \u2192</button>
+    </div>
+  </div>
+  ${visible.length ? `<div class="masonry">${visible.map(photoCardHTML).join("")}</div>`
+                 : `<div class="empty">NO PHOTOS IN THIS TAB</div>`}
+  ${(list.length > (state.visibleLimit || 100)) ? `<button class="btn" style="margin:16px auto;display:block" data-action="show-more">\u2192 SHOW MORE (${list.length - (state.visibleLimit || 100)} REMAINING)</button>` : ""}`;
+}
+
+function albumsHTML(){
+  const list = filteredPhotos();
+  const visible = list.slice(0, state.visibleLimit || 100);
+  const chips = ["ALL", ...state.albums];
+  return `
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:20px">
+    ${chips.map(a => `
+      <button class="chip-album" data-album="${esc(a)}" style="height:32px;padding:0 14px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.18em;border:1px solid ${state.albumFilter === a ? "var(--accent)" : "var(--line)"};background:${state.albumFilter === a ? "linear-gradient(90deg,#6366F1,#8B5CF6)" : "var(--surface2)"};color:${state.albumFilter === a ? "#fff" : "var(--muted)"};box-shadow:${state.albumFilter === a ? "0 0 16px rgba(139,92,246,.4)" : "none"}">${esc(a)} \u2022 ${a === "ALL" ? state.photos.length : state.photos.filter(p => (p.album || "UNSORTED") === a).length}</button>
+    `).join("")}
+    ${!isGuest() ? `<button class="btn white" style="height:32px" data-action="new-album">+ NEW ALBUM</button>` : ""}
+  </div>
+
+  ${state.albumFilter !== "ALL" && !isGuest() ? `
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 14px;margin-bottom:20px">
+    <span style="font-size:11px;letter-spacing:.2em;color:#fff">ALBUM: ${esc(state.albumFilter)} \u2022 ${list.length} PHOTOS</span>
+    ${!["UNSORTED","TRASH"].includes(state.albumFilter) ? `<button class="btn" style="height:28px" data-action="rename-album-open" data-name="${esc(state.albumFilter)}">EDIT NAME</button>` : ""}
+    ${!["UNSORTED","TRASH"].includes(state.albumFilter) ? `<button class="btn danger" style="height:28px" data-action="delete-album" data-name="${esc(state.albumFilter)}">DELETE ALBUM</button>` : ""}
+    <button class="btn" style="height:28px" data-action="open-upload">+ ADD PHOTOS</button>
+  </div>` : ""}
+
+  ${(list.length > (state.visibleLimit || 100)) ? `<button class="btn" style="margin:16px auto;display:block" data-action="show-more">\u2192 SHOW MORE (${list.length - (state.visibleLimit || 100)} REMAINING)</button>` : ""}
+  ${!isGuest() ? `
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <button class="btn" data-action="toggle-select-mode">${state.selectMode ? "CANCEL SELECT" : "\u2611 SELECT MULTIPLE"}</button>
+    ${state.selectMode && state.selectedIds.size ? `<button class="btn danger" data-action="bulk-trash">\uD83D\uDDD1 TRASH ${state.selectedIds.size} SELECTED</button>` : ""}
+    ${state.albumFilter === "UNSORTED" && (isAdmin() || isHerman()) && !state.selectMode ? `<button class="btn danger" data-action="delete-all-unsorted">\uD83D\uDDD1 DELETE ALL UNSORTED (${state.photos.filter(p => (p.album || "UNSORTED") === "UNSORTED").length})</button>` : ""}
+  </div>` : ""}
+  <div class="album-grid">
+    ${state.albums.map(a => {
+      const first = state.photos.find(p => (p.album || "UNSORTED") === a);
+      const count = state.photos.filter(p => (p.album || "UNSORTED") === a).length;
+      const active = state.albumFilter === a;
+      return `
+      <div class="card album-card" style="padding:0;overflow:hidden;cursor:pointer;border-color:${active ? "var(--accent)" : "var(--line)"};box-shadow:${active ? "0 0 24px rgba(139,92,246,.35)" : "none"}" data-album-card="${esc(a)}">
+        <div style="aspect-ratio:4/3;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden">
+          ${first ? `<img src="${esc(first.src || fileURL(first.key))}" style="width:100%;height:100%;object-fit:cover" loading="lazy">`
+                  : `<span style="font-size:10px;letter-spacing:.2em;color:var(--dim)">NO PHOTOS</span>`}
+        </div>
+        <div style="padding:14px">
+          <div style="font-size:12px;font-weight:800;letter-spacing:.18em;color:#fff">${esc(a)}</div>
+          <div style="margin-top:4px;font-size:10px;letter-spacing:.18em;color:var(--dim)">${count} MEMORIES</div>
+        </div>
+        ${!isGuest() ? `
+        <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
+          <button class="mini" style="width:28px;height:28px;background:rgba(26,26,46,.9);border:1px solid var(--line);color:#fff;font-size:10px;border-radius:50%" data-action="rename-album-open" data-name="${esc(a)}">\u270E</button>
+          ${!isGuest() && !["UNSORTED","TRASH"].includes(a) ? `<button class="mini" style="width:28px;height:28px;background:rgba(26,18,32,.9);border:1px solid #3A1A2A;color:var(--danger);font-size:10px;border-radius:50%" data-action="delete-album" data-name="${esc(a)}">\u2715</button>` : ""}
+        </div>` : ""}
+      </div>`;
+    }).join("")}
+  </div>
+
+  <div class="masonry lg">
+    ${visible.length ? visible.map(photoCardHTML).join("") : `<div class="empty">NO PHOTOS IN THIS ALBUM \u2022 DRAG NEW MEMORIES HERE</div>`}
+  </div>
+  ${(list.length > visible.length) ? `<button class="btn" style="margin:16px auto;display:block" data-action="show-more">\u2192 SHOW MORE (${list.length - visible.length} REMAINING)</button>` : ""}`;
+}
+
+/* ---------------- TRASH (ADMIN ONLY) ---------------- */
+function trashCardHTML(p){
+  const media = p.type === "video"
+    ? `<video src="${esc(p.src || fileURL(p.key))}" muted playsinline></video>`
+    : `<img src="${esc(p.src || fileURL(p.key))}" loading="lazy" decoding="async" alt="${esc(p.caption)}">`;
+  return `
+  <div class="photo-card" style="opacity:.8">
+    ${media}
+    <span class="photo-album-tag" style="background:#3A1A2A;color:var(--danger)">${esc(p.originalAlbum || p.album || "UNSORTED")}</span>
+    <div class="photo-foot" style="padding:12px;display:flex;gap:8px;justify-content:space-between;align-items:center">
+      <div style="min-width:0;font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.caption)}</div>
+      <div style="display:flex;gap:4px">
+        <button class="btn mini" data-action="restore-photo" data-id="${esc(p.id)}">RESTORE</button>
+        <button class="btn danger mini" data-action="permanent-delete" data-id="${esc(p.id)}">DELETE</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function trashHTML(){
+  if(!isAdmin() && !isHerman()) return homeHTML();
+  const list = state.trash;
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:11px;letter-spacing:.3em;color:var(--danger);font-weight:700">TRASH \u2022 ${list.length} ITEMS \u2022 ONLY ADMIN SEES THIS</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" data-action="restore-all">RESTORE ALL</button>
+      <button class="btn danger" data-action="empty-trash">EMPTY TRASH</button>
+    </div>
+  </div>
+  <div class="masonry lg">
+    ${list.length ? list.map(trashCardHTML).join("") : `<div class="empty">TRASH EMPTY</div>`}
+  </div>`;
+}
+
+function membersHTML(){
+  return `
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div style="font-size:11px;letter-spacing:.3em;color:var(--dim);font-weight:700">FAMILY MEMBERS \u2022 ${state.members.length} \u2022 ${state.members.filter(m => m.isGuest).length} GUESTS</div>
+    ${isAdmin() ? `<button class="btn white" data-action="add-member-open">+ ADD MEMBER</button>` : ""}
+  </div>
+  <div class="members-grid">
+    ${state.members.map(m => {
+      const uploaded = state.photos.filter(p => p.uploadedBy === m.id).length;
+      const tagged = state.photos.filter(p => (p.tagged || []).includes(m.id)).length;
+      const info = bdayInfo(m);
+      const isMe = m.id === me()?.id;
+      return `
+      <div class="card member-full" style="border-color:${info.isToday ? "var(--amber)" : "var(--line)"};box-shadow:${info.isToday ? "0 0 24px rgba(245,158,11,.3)" : "none"}">
+        ${info.isToday ? `<div style="position:absolute;top:-10px;right:-6px;padding:5px 10px;border-radius:999px;background:linear-gradient(90deg,#F59E0B,#EC4899);color:#fff;font-size:9px;font-weight:800;letter-spacing:.1em">\uD83C\uDF89 BIRTHDAY!</div>` : ""}
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <button style="background:none;border:none;padding:0" data-goto-profile="${m.id}">${avatar(m, "md")}</button>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+              <span style="padding:4px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);font-size:9px;letter-spacing:.18em;color:var(--muted)">${esc(m.relation)}</span>
+              ${m.isAdmin ? '<span class="tag admin" style="margin:0">ADMIN</span>' : ""}
+              ${m.isGuest ? '<span class="tag guest" style="margin:0;background:rgba(90,90,128,.2);border:1px solid rgba(90,90,128,.3);color:var(--muted)">GUEST</span>' : ""}
+            </div>
+            <div style="display:flex;gap:4px">
+              ${isAdmin() ? `
+                <button class="mini" style="width:28px;height:28px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);color:#fff;font-size:10px" data-action="edit-member-open" data-id="${m.id}">\u270E</button>
+                ${m.id !== me()?.id ? `<button class="mini" style="width:28px;height:28px;border-radius:50%;background:#1A1220;border:1px solid #3A1A2A;color:var(--danger);font-size:10px" data-action="remove-member" data-id="${m.id}">\u2715</button>` : ""}` : ""}
+              ${isMe && !isGuest() && state.bioEditId !== m.id ? `<button class="btn white" style="height:28px;padding:0 10px;font-size:9px" data-action="bio-edit" data-id="${m.id}">\u270E</button>` : ""}
+            </div>
+          </div>
+        </div>
+        <button style="background:none;border:none;padding:0;margin-top:14px;text-align:left;width:100%" data-goto-profile="${m.id}">
+          <div style="font-size:18px;font-weight:800;letter-spacing:.14em;color:#fff">${esc(m.name)} ${isMe ? '<span style="color:#C4B5FD;font-size:10px">\u2022 YOU</span>' : ""}</div>
+          <div style="font-size:11px;letter-spacing:.18em;color:var(--dim)">${esc(m.handle)} \u2022 ${bdayLabel(m.birthday)} \u2022 ${esc(m.birthday)}</div>
+        </button>
+        <div style="margin-top:12px;display:inline-flex;padding:6px 12px;border-radius:999px;border:1px solid ${info.isToday ? "rgba(245,158,11,.5)" : info.days !== null && info.days <= 7 ? "rgba(139,92,246,.3)" : "var(--line)"};background:${info.isToday ? "rgba(245,158,11,.15)" : info.days !== null && info.days <= 7 ? "rgba(139,92,246,.12)" : "var(--surface2)"};font-size:10px;font-weight:700;letter-spacing:.12em;color:${info.isToday ? "#FCD34D" : "#C4B5FD"}">${esc(info.text)}</div>
+        <div style="margin-top:12px">
+          ${state.bioEditId === m.id ? `
+            <textarea class="input" id="bio-input" style="min-height:80px;padding:12px;border-radius:14px;font-size:11px" placeholder="CLICK TO WRITE ABOUT YOURSELF...">${esc(state.bioDraft)}</textarea>
+            <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:9px;letter-spacing:.15em;color:var(--dim)">${state.bioDraft.length}/150</span>
+              <div style="display:flex;gap:6px">
+                <button class="btn" style="height:28px" data-action="bio-cancel">CANCEL</button>
+                <button class="btn white" style="height:28px" data-action="bio-save">SAVE BIO</button>
+              </div>
+            </div>` : `
+            <div style="font-size:11px;line-height:1.6;color:var(--muted)">${esc(m.bio) || '<span style="color:var(--dim);font-style:italic">No bio yet.</span>'}</div>`}
+        </div>
+        <div class="stat3" style="margin-top:14px">
+          <div class="stat-box"><div class="stat-lbl">UPLOADED</div><div style="margin-top:4px;font-size:14px;font-weight:700;color:#fff">${uploaded}</div></div>
+          <div class="stat-box"><div class="stat-lbl">TAGGED</div><div style="margin-top:4px;font-size:14px;font-weight:700;color:#C4B5FD">${tagged}</div></div>
+          <div class="stat-box"><div class="stat-lbl">ROLE</div><div style="margin-top:4px;font-size:10px;font-weight:700;color:${m.isGuest ? "var(--muted)" : "var(--ok)"}">${m.isGuest ? "VIEW ONLY" : "CAN UPLOAD"}</div></div>
+        </div>
+        <button class="btn" style="margin-top:12px;width:100%" data-goto-profile="${m.id}">VIEW PROFILE \u2192</button>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+function boardHTML(){
+  const seed = [
+    { user:"LUCY",   text:"DINNER SUNDAY 6PM. NO EXCUSES. BRING APPETITE.", color:"#06B6D4" },
+    { user:"HERMAN", text:"UPLOADED SUMMER 24 ALBUM. PLEASE TAG FACES.",    color:"#F59E0B" },
+    { user:"FAITH",  text:"WHO TOOK MY POLAROID CAMERA?? RETURN IT.",       color:"#EC4899" },
+  ];
+  const posts = state.boardPosts.length ? state.boardPosts : seed;
+  return `
+  <div class="card" style="max-width:720px">
+    <div style="font-size:11px;letter-spacing:.3em;color:var(--dim);font-weight:700">FAMILY BOARD \u2022 PINNED \u2022 SAVED FOR EVERYONE</div>
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+      ${posts.map((p, idx) => `
+        <div class="board-post">
+          <div class="avatar sm" style="width:32px;height:32px;font-size:10px;background:${p.color}">${esc((p.user || "?")[0])}</div>
+          <div style="flex:1">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.15em;color:#fff">${esc(p.user)}</div>
+            <div style="margin-top:4px;font-size:12px;line-height:1.4;color:var(--muted)">${esc(p.text)}</div>
+          </div>
+          ${isAdmin() ? `
+          <div style="display:flex;gap:4px">
+            <button class="btn mini" data-action="edit-board" data-idx="${idx}">EDIT</button>
+            <button class="btn danger mini" data-action="delete-board" data-idx="${idx}">DELETE</button>
+          </div>` : ""}
+        </div>`).join("")}
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <input class="input" id="board-input" placeholder="WRITE ON BOARD..." ${isGuest() ? "disabled" : ""}
+        style="flex:1;border-radius:999px;height:40px;${isGuest() ? "opacity:.5" : ""}" value="${esc(state.boardDraft)}">
+      <button class="btn primary" data-action="board-post" ${isGuest() || !state.boardDraft.trim() ? "disabled" : ""} style="height:40px">POST</button>
+    </div>
+    ${isGuest() ? `<div style="margin-top:8px;font-size:9px;letter-spacing:.15em;color:var(--dim)">GUESTS CANNOT POST ON BOARD</div>` : ""}
+  </div>`;
+}
+
+function adminHTML(){
+  const real = state.members.filter(m => !m.isGuest);
+  const setCount = real.filter(m => state.passwords[m.id]).length;
+  const bdayToday = state.members.filter(m => daysUntilBirthday(m.birthday) === 0).length;
+  const upcoming = [...state.members]
+    .map(m => ({ m, d: daysUntilBirthday(m.birthday) ?? 999 }))
+    .sort((a, b) => a.d - b.d);
+  const totalBytes = state.photos.reduce((s, p) => s + (p.size || 0), 0);
+  const mb = (totalBytes / 1048576).toFixed(1);
+
+  return `
+  <div style="max-width:900px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:grid;grid-template-columns:1fr;gap:14px" class="admin-2col">
+      <div class="card" style="background:#1A1220;border-color:#3A1A2A">
+        <div style="font-size:11px;letter-spacing:.3em;color:var(--danger);font-weight:700">ADMIN \u2022 STORAGE (R2 \u2022 bucket: familyvault)</div>
+        <div style="margin-top:14px;font-size:28px;font-weight:800;color:#fff">${mb} MB / 10240 MB</div>
+        <div style="margin-top:8px;height:6px;border-radius:999px;background:#2A1A2A;overflow:hidden">
+          <div style="height:100%;background:var(--danger);border-radius:999px;width:${Math.max(0.5, Math.min(100, (totalBytes / 1048576 / 10240) * 100)).toFixed(1)}%"></div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;letter-spacing:.15em;color:var(--dim)">VERY CHILL. WE HAVE SPACE.</div>
+        <div style="margin-top:14px;padding:12px;border-radius:14px;background:var(--panel);border:1px solid var(--line)">
+          <div style="font-size:9px;letter-spacing:.15em;color:var(--dim)">PERSISTENCE</div>
+          <div style="margin-top:6px;font-size:10px;color:var(--muted)">MEMBERS: ${state.members.length} \u2022 ALBUMS: ${state.albums.length} \u2022 PASSWORDS: ${Object.keys(state.passwords).length} \u2022 localStorage + R2 WORKER</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-size:11px;letter-spacing:.3em;color:var(--dim);font-weight:700">MEMBER PERMS</div>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto">
+          ${state.members.map(m => `
+            <div style="display:flex;align-items:center;justify-content:space-between;height:36px;padding:0 12px;border-radius:999px;background:var(--surface2);border:1px solid var(--line)">
+              <span style="font-size:11px;letter-spacing:.15em;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.handle)}${m.isAdmin ? " \u2022 ADMIN" : ""}${m.isGuest ? " \u2022 GUEST" : ""}</span>
+              <span style="font-size:9px;padding:4px 8px;border-radius:999px;background:var(--line);color:var(--muted)">${m.id === me()?.id ? "YOU" : m.isGuest ? "VIEW ONLY" : "CAN UPLOAD"}</span>
+            </div>`).join("")}
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="border-color:rgba(139,92,246,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="font-size:11px;letter-spacing:.3em;color:#C4B5FD;font-weight:700">PASSWORDS \u2022 ADMIN CAN SET/RESET \u2022 STORED IN localStorage famvault_passwords</div>
+        <span style="font-size:9px;padding:4px 8px;border-radius:999px;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.3);color:#C4B5FD">${setCount}/${real.length} SET</span>
+      </div>
+      <div style="margin-top:14px;display:grid;grid-template-columns:1fr;gap:10px" class="pw-grid">
+        ${real.map(m => {
+          const set = !!state.passwords[m.id];
+          const draft = state.adminPwDrafts[m.id] || "";
+          return `
+          <div style="padding:14px;border-radius:16px;border:1px solid;display:flex;flex-direction:column;gap:10px;background:${set ? "rgba(16,185,129,.05)" : "rgba(245,158,11,.05)"};border-color:${set ? "rgba(16,185,129,.2)" : "rgba(245,158,11,.2)"}">
+            <div style="display:flex;align-items:center;gap:10px">
+              ${avatar(m, "sm")}
+              <div style="flex:1">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.15em;color:#fff">${esc(m.name)} \u2022 ${esc(m.handle)}</div>
+                <div style="margin-top:3px;font-size:9px;letter-spacing:.15em;color:${set ? "var(--ok)" : "var(--amber)"}">\u25CF ${set ? "PASSWORD SET" : "NOT SET \u2022 FIRST LOGIN WILL SET"}${set ? ` \u2022 ${(state.passwords[m.id] || "").length} CHARS` : ""}</div>
+              </div>
+              ${m.isAdmin ? '<span class="tag admin" style="margin:0">ADMIN</span>' : ""}
+            </div>
+            <div style="display:flex;gap:8px">
+              <input class="input" style="height:32px;border-radius:999px;font-size:10px;flex:1" placeholder="${set ? "NEW PASSWORD" : "SET PASSWORD"}"
+                value="${esc(draft)}" data-pw-draft="${m.id}">
+              <button class="btn white" style="height:32px;font-size:9px" data-action="admin-pw-set" data-id="${m.id}">${set ? "RESET" : "SET"}</button>
+              ${set ? `<button class="btn danger" style="height:32px;font-size:9px" data-action="admin-pw-clear" data-id="${m.id}">CLEAR</button>` : ""}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+      <div style="margin-top:14px;font-size:9px;letter-spacing:.15em;color:var(--dim)">FIRST LOGIN IF NO PASSWORD = ANY NON-EMPTY SETS PASSWORD \u2022 WRONG PASSWORD SHOWS ERROR \u2022 ADMIN HERMAN CAN SET PASSWORDS FOR ALL</div>
+    </div>
+
+    <div class="card" style="border-color:rgba(139,92,246,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="font-size:11px;letter-spacing:.3em;color:#C4B5FD;font-weight:700">BIRTHDAYS \u2022 EDITABLE BY ADMIN \u2022 SORTED BY UPCOMING</div>
+        <span style="font-size:9px;padding:4px 8px;border-radius:999px;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.3);color:#C4B5FD">${bdayToday} TODAY</span>
+      </div>
+      <div style="margin-top:14px;display:grid;grid-template-columns:1fr;gap:8px" class="bday-grid">
+        ${upcoming.map(({ m, d }) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:16px;border:1px solid;background:${d === 0 ? "rgba(245,158,11,.1)" : d <= 7 ? "rgba(139,92,246,.1)" : "var(--surface2)"};border-color:${d === 0 ? "rgba(245,158,11,.4)" : d <= 7 ? "rgba(139,92,246,.3)" : "var(--line)"}">
+            <div style="display:flex;align-items:center;gap:10px">
+              ${avatar(m, "sm")}
+              <div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:.15em;color:#fff">${esc(m.name)} \u2022 ${bdayLabel(m.birthday)}</div>
+                <div style="font-size:10px;letter-spacing:.15em;color:var(--muted)">${esc(m.birthday)} \u2022 ${d === 0 ? "TODAY!" : d === 1 ? "TOMORROW" : `IN ${d} DAYS`}</div>
+              </div>
+            </div>
+            <button class="btn" style="height:28px" data-action="edit-member-open" data-id="${m.id}">EDIT</button>
+          </div>`).join("")}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- MODALS ---------------- */
+function uploadModalHTML(){
+  if(!state.uploadOpen || isGuest()) return "";
+  return `
+  <div class="overlay" style="z-index:70">
+    <div class="backdrop" data-action="close-upload"></div>
+    <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:800;letter-spacing:.2em;color:#fff">UPLOAD \u2022 NEW MEMORY</div>
+        <button class="x" data-action="close-upload" style="position:static;width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);color:var(--muted)">\u2715</button>
+      </div>
+      <div id="dropzone" style="border:2px dashed ${state.uploadPreview ? "rgba(139,92,246,.8)" : "rgba(255,77,109,.5)"};border-radius:20px;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;text-align:center">
+        <input type="file" id="upload-file" accept="image/*,video/*" multiple style="display:none">
+        ${state.uploadPreview
+          ? `<img src="${esc(state.uploadPreview)}" style="max-height:180px;border-radius:12px">`
+          : `<div style="width:48px;height:48px;border-radius:50%;background:rgba(255,77,109,.2);display:flex;align-items:center;justify-content:center;color:var(--danger);font-size:20px">\u2192</div>
+             <div style="margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.2em;color:#fff">DRAG & DROP PHOTOS / VIDEOS</div>
+             <div style="margin-top:6px;font-size:10px;letter-spacing:.15em;color:var(--dim)">CLICK TO BROWSE \u2022 SELECT MANY AT ONCE</div>`}
+      </div>
+      ${state.uploadTotal > 0 ? `
+      <div id="upload-progress" style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;letter-spacing:.15em;color:#C4B5FD;margin-bottom:6px">
+          <span id="upload-count">UPLOADING \u2022 ${state.uploadDone} / ${state.uploadTotal}</span>
+          <span id="upload-pct">${Math.round((state.uploadDone / state.uploadTotal) * 100)}%</span>
+        </div>
+        <div style="height:6px;border-radius:999px;background:var(--surface2);overflow:hidden">
+          <div id="upload-bar-fill" style="height:100%;width:${Math.round((state.uploadDone / state.uploadTotal) * 100)}%;background:linear-gradient(90deg,var(--accent),#8B5CF6);transition:width .2s"></div>
+        </div>
+      </div>` : ""}
+      ${state.uploadFiles && state.uploadFiles.length > 1 ? `
+      <div style="margin-top:10px;font-size:10px;letter-spacing:.15em;color:var(--dim)">${state.uploadFiles.length} FILES QUEUED \u2022 ${state.uploadFiles.filter(f => f.type.startsWith("video/")).length} VIDEOS</div>` : ""}
+      <div style="margin-top:16px">
+        <div class="field-label">CAPTION \u2022 FAMILY STYLE</div>
+        <input class="input" id="upload-caption" placeholder="BACKYARD BBQ // 2024" value="${esc(state.uploadCaption)}">
+      </div>
+      <div style="margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="field-label" style="margin:0">ALBUM</div>
+          <button class="btn" style="height:26px;font-size:9px" data-action="toggle-new-album">+ NEW ALBUM</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${state.albums.map(a => `
+            <button style="height:32px;padding:0 12px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.15em;border:1px solid ${state.uploadAlbum === a ? "var(--accent)" : "var(--line)"};background:${state.uploadAlbum === a ? "var(--accent)" : "transparent"};color:${state.uploadAlbum === a ? "#fff" : "var(--muted)"}" data-upload-album="${esc(a)}">${esc(a)}</button>`).join("")}
+        </div>
+        ${state.uploadNewAlbum ? `
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <input class="input" id="new-album-inline" placeholder="NEW ALBUM NAME" style="height:36px;border-radius:999px;flex:1;font-size:11px" value="${esc(state.newAlbumName)}">
+          <button class="btn white" style="height:36px" data-action="confirm-new-album-inline">ADD</button>
+        </div>` : ""}
+      </div>
+      <div style="margin-top:16px">
+        <div class="field-label">TAG PEOPLE</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+          ${state.members.filter(m => !m.isGuest).map(m => `
+            <button type="button" data-tag="${esc(m.id)}" style="height:32px;padding:0 12px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.15em;border:1px solid ${state.taggedIds.includes(m.id) ? "var(--accent)" : "var(--line)"};background:${state.taggedIds.includes(m.id) ? "var(--accent)" : "transparent"};color:${state.taggedIds.includes(m.id) ? "#fff" : "var(--muted)"}">${esc(m.name)}</button>`).join("")}
+        </div>
+        ${state.taggedIds.length ? `<div style="margin-top:6px;font-size:9px;letter-spacing:.15em;color:#C4B5FD">${state.taggedIds.length} TAGGED</div>` : ""}
+      </div>
+      <div style="margin-top:20px;display:flex;gap:10px">
+        <button class="btn" style="flex:1" data-action="close-upload">CANCEL</button>
+        <button class="btn primary" style="flex:1" data-action="do-upload" ${!(state.uploadFiles && state.uploadFiles.length) || state.uploading ? "disabled" : ""}>${state.uploading ? "UPLOADING " + state.uploadDone + "/" + state.uploadTotal + "..." : "UPLOAD " + ((state.uploadFiles && state.uploadFiles.length) || 0) + " TO VAULT \u2192"}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function lightboxHTML(){
+  const p = state.lightbox;
+  if(!p) return "";
+  const up = state.members.find(m => m.id === p.uploadedBy);
+  return `
+  <div class="overlay" style="z-index:60;background:rgba(5,5,16,.92)">
+    <div class="backdrop" data-action="close-lightbox"></div>
+    <div class="lb-panel" style="position:relative">
+      <div style="flex:1;background:#000;display:flex;align-items:center;justify-content:center;min-height:320px">
+        ${p.type === "video"
+          ? `<video src="${esc(p.src || fileURL(p.key))}" controls autoplay playsinline style="max-width:100%;max-height:70vh"></video>`
+          : `<img src="${esc(p.src || fileURL(p.key))}" style="max-width:100%;max-height:70vh;object-fit:contain">`}
+      </div>
+      <div style="width:100%;max-width:340px;padding:24px;display:flex;flex-direction:column;gap:14px;background:var(--surface)">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="padding:6px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);font-size:10px;letter-spacing:.15em;color:#C4B5FD">${esc(p.album || "UNSORTED")}</span>
+          <div style="display:flex;gap:8px">
+            ${!isGuest() ? `<button class="btn white" style="height:32px;font-size:9px" data-action="download" data-id="${esc(p.id)}">\u2B07 DOWNLOAD</button>` : ""}
+            <button class="x" data-action="close-lightbox" style="position:static;width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);color:var(--muted)">\u2715</button>
+          </div>
+        </div>
+        <div style="font-size:14px;font-weight:700;letter-spacing:.05em;color:#fff;line-height:1.4">${esc(p.caption)}</div>
+        <div style="font-size:11px;letter-spacing:.15em;color:var(--dim)">${esc(p.date || "")} \u2022 BY ${esc(up?.name || "UNKNOWN")}</div>
+        ${(p.tagged || []).length ? `
+        <div>
+          <div class="field-label">TAGGED</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+            ${(p.tagged || []).map(id => {
+              const t = state.members.find(m => m.id === id);
+              return `<button style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);color:#fff;font-size:10px" data-goto-profile="${esc(id)}">${t ? avatar(t, "sm").replace('class="avatar sm"', 'style="width:20px;height:20px;font-size:8px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;background:' + t.color + '"') : ""} ${esc(t?.name || id)}</button>`;
+            }).join("")}
+          </div>
+        </div>` : ""}
+        <div class="stat3">
+          <div class="stat-box"><div class="stat-lbl">LIKES</div><div style="margin-top:4px;font-size:14px;font-weight:700;color:#fff">${p.likes || 0}</div></div>
+          <div class="stat-box"><div class="stat-lbl">SIZE</div><div style="margin-top:4px;font-size:11px;font-weight:700;color:#C4B5FD">${p.size ? (p.size / 1048576).toFixed(1) + " MB" : "\u2014"}</div></div>
+          <div class="stat-box"><div class="stat-lbl">STATUS</div><div style="margin-top:4px;font-size:10px;font-weight:700;color:var(--ok)">SAVED</div></div>
+        </div>
+        ${isAdmin() ? `<button class="btn danger" data-action="delete-photo" data-id="${esc(p.id)}">\uD83D\uDDD1 DELETE PHOTO (ADMIN)</button>` : ""}
+        <button class="btn" style="width:100%" data-action="close-lightbox">CLOSE</button>
+        <div style="font-size:9px;letter-spacing:.15em;color:#3A3A5A;text-align:center">${isGuest() ? "GUEST VIEW \u2022 VIEW ONLY \u2022 NO DOWNLOAD" : "WORKS ON ANY DEVICE \u2022 ORIGINAL QUALITY"}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function addMemberModalHTML(){
+  if(!state.addMemberOpen || !isAdmin()) return "";
+  const f = state.addMemberForm;
+  return `
+  <div class="overlay" style="z-index:70">
+    <div class="backdrop" data-action="close-add-member"></div>
+    <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:800;letter-spacing:.2em;color:#fff">ADD NEW MEMBER \u2022 ADMIN ONLY</div>
+        <button class="x" data-action="close-add-member" style="position:static;width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);color:var(--muted)">\u2715</button>
+      </div>
+      <div class="field-label">NAME *</div>
+      <input class="input" value="${esc(f.name)}" data-mf="name" placeholder="E.G. MUSA">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div>
+          <div class="field-label">RELATION</div>
+          <input class="input" value="${esc(f.relation)}" data-mf="relation" placeholder="E.G. COUSIN">
+        </div>
+        <div>
+          <div class="field-label">BIRTHDAY (MM-DD)</div>
+          <input class="input" value="${esc(f.birthday)}" data-mf="birthday" placeholder="05-12">
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="field-label">BIO (MAX 150)</div>
+        <textarea class="input" data-mf="bio" style="min-height:70px;padding:12px">${esc(f.bio)}</textarea>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;gap:12px">
+        <div style="flex:1">
+          <div class="field-label">COLOR</div>
+          <input type="color" class="input" value="${esc(f.color)}" data-mf="color" style="padding:4px;height:44px">
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.1em;color:#fff;margin-bottom:12px">
+          <input type="checkbox" ${f.isGuest ? "checked" : ""} data-mf="isGuest"> GUEST (VIEW ONLY)
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.1em;color:#fff;margin-bottom:12px">
+          <input type="checkbox" ${f.isAdmin ? "checked" : ""} ${f.isGuest ? "disabled" : ""} data-mf="isAdmin"> ADMIN
+        </label>
+      </div>
+      <div style="margin-top:18px;display:flex;gap:10px">
+        <button class="btn" style="flex:1" data-action="close-add-member">CANCEL</button>
+        <button class="btn white" style="flex:1" data-action="add-member-save">ADD MEMBER \u2192</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function editMemberModalHTML(){
+  if(!state.editMemberId || !isAdmin()) return "";
+  const cur = state.members.find(m => m.id === state.editMemberId);
+  if(!cur) return "";
+  const f = state.editMemberForm;
+  return `
+  <div class="overlay" style="z-index:70">
+    <div class="backdrop" data-action="close-edit-member"></div>
+    <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:800;letter-spacing:.2em;color:#fff">EDIT MEMBER \u2022 ADMIN ONLY</div>
+        <button class="x" data-action="close-edit-member" style="position:static;width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);color:var(--muted)">\u2715</button>
+      </div>
+      <div class="field-label">NAME</div>
+      <input class="input" value="${esc(f.name)}" data-ef="name">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div>
+          <div class="field-label">RELATION</div>
+          <input class="input" value="${esc(f.relation)}" data-ef="relation">
+        </div>
+        <div>
+          <div class="field-label">BIRTHDAY (MM-DD)</div>
+          <input class="input" value="${esc(f.birthday)}" data-ef="birthday" style="border-color:rgba(139,92,246,.4)">
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="field-label">BIO (MAX 150)</div>
+        <textarea class="input" data-ef="bio" style="min-height:70px;padding:12px">${esc(f.bio)}</textarea>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;gap:12px">
+        <div style="flex:1">
+          <div class="field-label">COLOR</div>
+          <input type="color" class="input" value="${esc(f.color)}" data-ef="color" style="padding:4px;height:44px">
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.1em;color:#fff;margin-bottom:12px">
+          <input type="checkbox" ${f.isGuest ? "checked" : ""} data-ef="isGuest"> GUEST (VIEW ONLY)
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.1em;color:#fff;margin-bottom:12px">
+          <input type="checkbox" ${f.isAdmin ? "checked" : ""} ${f.isGuest ? "disabled" : ""} data-ef="isAdmin"> ADMIN
+        </label>
+      </div>
+      <div style="margin-top:18px;display:flex;gap:10px">
+        <button class="btn" style="flex:1" data-action="close-edit-member">CANCEL</button>
+        <button class="btn primary" style="flex:1" data-action="edit-member-save">SAVE \u2192</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function newAlbumModalHTML(){
+  if(!state.newAlbumOpen) return "";
+  return `
+  <div class="overlay" style="z-index:70">
+    <div class="backdrop" data-action="close-new-album"></div>
+    <div class="modal" style="max-width:380px">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.2em;color:#fff">CREATE NEW ALBUM</div>
+      <input class="input" id="new-album-modal" placeholder="ALBUM NAME // E.G. WINTER 25" style="margin-top:14px;text-transform:uppercase" value="${esc(state.newAlbumTitle)}">
+      <div style="margin-top:14px;display:flex;gap:10px">
+        <button class="btn" style="flex:1" data-action="close-new-album">CANCEL</button>
+        <button class="btn white" style="flex:1" data-action="confirm-new-album">CREATE \u2192</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   EVENTS + BOOT
+   ========================================================= */
+let boardPosts = [];
+let boardDraft = "";
+let searchTimeout = null;
+
+function bind(){
+  const root = $("#app");
+
+  /* login */
+  root.querySelectorAll("[data-login]").forEach(el =>
+    el.addEventListener("click", () => pickMember(el.dataset.login)));
+  root.querySelector("#btn-guest")?.addEventListener("click", continueAsGuest);
+  root.querySelector("#pw-input")?.addEventListener("input", e => { state.pwInput = e.target.value; state.pwError = ""; });
+  root.querySelector("#pw-input")?.addEventListener("keydown", e => {
+    if(e.key === "Enter" && state.pendingMember) login(state.pendingMember);
+    if(e.key === "Escape") cancelLogin();
+  });
+
+  /* tabs / header */
+  root.querySelectorAll("[data-tab]").forEach(el =>
+    el.addEventListener("click", () => setTab(el.dataset.tab)));
+  root.querySelector("#search-input")?.addEventListener("input", e => {
+    clearTimeout(searchTimeout);
+    const val = e.target.value;
+    searchTimeout = setTimeout(() => { state.search = val; state.visibleLimit = 100; render(); }, 300);
+  });
+  root.querySelector("[data-action='logout']")?.addEventListener("click", logout);
+
+  /* generic action delegation */
+  root.addEventListener("click", e => {
+    const el = e.target.closest("[data-action],[data-photo],[data-album-card],[data-goto-profile],[data-album],[data-upload-album]");
+    if(!el) return;
+
+    if(el.dataset.photo && !el.dataset.action){
+      state.lightbox = state.photos.find(p => p.id === el.dataset.photo) || null;
+      render(); return;
+    }
+    if(el.dataset.albumCard && !el.dataset.action){
+      state.albumFilter = el.dataset.albumCard;
+      state.tab = "ALBUMS";
+      state.visibleLimit = 100;
+      render(); return;
+    }
+    if(el.dataset.album){
+      state.albumFilter = el.dataset.album;
+      render(); return;
+    }
+    if(el.dataset.uploadAlbum){
+      state.uploadAlbum = el.dataset.uploadAlbum;
+      render(); return;
+    }
+    if(el.dataset.gotoProfile){
+      state.profileId = el.dataset.gotoProfile;
+      state.tab = "MEMBERS";
+      render(); return;
+    }
+
+    switch(el.dataset.action){
+      case "cancel-login":     cancelLogin(); break;
+      case "do-login":         login(el.dataset.id); break;
+      case "logout":           logout(); break;
+      case "open-upload":      state.uploadOpen = true; render(); break;
+      case "close-upload":     state.uploadOpen = false; render(); break;
+      case "do-upload":        doUpload(); break;
+      case "toggle-new-album": state.uploadNewAlbum = !state.uploadNewAlbum; render(); break;
+      case "confirm-new-album-inline": if(addAlbum()){ state.uploadNewAlbum = false; render(); } break;
+      case "new-album":        state.newAlbumOpen = true; render(); break;
+      case "close-new-album":  state.newAlbumOpen = false; state.newAlbumTitle = ""; render(); break;
+      case "confirm-new-album":if(addAlbum()) state.newAlbumOpen = false; render(); break;
+      case "rename-album-open":state.renameAlbum = el.dataset.name; state.renameAlbumName = el.dataset.name; render(); break;
+      case "delete-album":     deleteAlbum(el.dataset.name); break;
+      case "download":         { const p = state.photos.find(x => x.id === el.dataset.id); if(p) downloadPhoto(p); break; }
+      case "close-lightbox":   state.lightbox = null; render(); break;
+      case "delete-photo":     deleteCurrentPhoto(); break;
+      case "bio-edit":         state.bioEditId = el.dataset.id; state.bioDraft = state.members.find(m => m.id === el.dataset.id)?.bio || ""; render(); break;
+      case "bio-cancel":       state.bioEditId = null; state.bioDraft = ""; render(); break;
+      case "bio-save":         saveBio(); break;
+      case "add-member-open":  state.addMemberOpen = true; render(); break;
+      case "close-add-member": state.addMemberOpen = false; render(); break;
+      case "add-member-save":  addMember(); break;
+      case "edit-member-open": editMemberOpen(state.members.find(m => m.id === el.dataset.id)); break;
+      case "close-edit-member":state.editMemberId = null; render(); break;
+      case "edit-member-save": editMemberSave(); break;
+      case "admin-pw-set":     adminSetPassword(el.dataset.id); break;
+      case "admin-pw-clear":   adminClearPassword(el.dataset.id); break;
+      case "board-post":       boardPost(); break;
+      case "edit-board":       editBoardPost(+el.dataset.idx); break;
+      case "delete-board":     deleteBoardPost(+el.dataset.idx); break;
+      case "restore-photo":    restoreFromTrash(el.dataset.id); break;
+      case "permanent-delete": permanentDelete(el.dataset.id); break;
+      case "empty-trash":      emptyTrash(); break;
+      case "restore-all":      restoreAllTrash(); break;
+      case "toggle-select-mode": state.selectMode = !state.selectMode; if(!state.selectMode) state.selectedIds.clear(); render(); break;
+      case "bulk-trash":
+        if(!state.selectedIds.size) break;
+        if(!confirm(`MOVE ${state.selectedIds.size} ITEMS TO TRASH?`)) break;
+        moveToTrash(Array.from(state.selectedIds));
+        state.selectedIds.clear();
+        state.selectMode = false;
+        toast("MOVED TO TRASH");
+        break;
+      case "goto-bbq":         state.tab = "ALBUMS"; state.albumFilter = "FAMILY BBQ"; render(); break;
+      case "show-more":        state.visibleLimit = (state.visibleLimit || 100) + 100; render(); break;
+case "delete-all-unsorted": {
+  if(!isAdmin() && !isHerman()){ toast("ONLY ADMIN"); break; }
+  const unsortedIds = state.photos.filter(p => (p.album || "UNSORTED") === "UNSORTED").map(p => p.id);
+  if(!unsortedIds.length){ toast("NO PHOTOS IN UNSORTED"); break; }
+  if(!confirm(`DELETE ALL ${unsortedIds.length} PHOTOS IN UNSORTED? THEY WILL MOVE TO TRASH.`)) break;
+  moveToTrash(unsortedIds);
+  toast(`${unsortedIds.length} MOVED TO TRASH`);
+  render();
+  break;
+}
+    }
+  });
+
+  /* admin password drafts */
+  root.querySelectorAll("[data-pw-draft]").forEach(el =>
+    el.addEventListener("input", e => { state.adminPwDrafts[el.dataset.pwDraft] = e.target.value; }));
+
+  /* add-member form */
+  root.querySelectorAll("[data-mf]").forEach(el => {
+    const key = el.dataset.mf;
+    const handler = e => {
+      if(key === "isGuest"){ state.addMemberForm.isGuest = e.target.checked; if(e.target.checked) state.addMemberForm.isAdmin = false; }
+      else if(key === "isAdmin"){ state.addMemberForm.isAdmin = e.target.checked; }
+      else state.addMemberForm[key] = e.target.value;
+    };
+    if(el.type === "checkbox") el.addEventListener("change", handler);
+    else el.addEventListener("input", handler);
+  });
+
+  /* edit-member form */
+  root.querySelectorAll("[data-ef]").forEach(el => {
+    const key = el.dataset.ef;
+    const handler = e => {
+      if(key === "isGuest"){ state.editMemberForm.isGuest = e.target.checked; if(e.target.checked) state.editMemberForm.isAdmin = false; }
+      else if(key === "isAdmin"){ state.editMemberForm.isAdmin = e.target.checked; }
+      else state.editMemberForm[key] = e.target.value;
+    };
+    if(el.type === "checkbox") el.addEventListener("change", handler);
+    else el.addEventListener("input", handler);
+  });
+
+  /* bio textarea */
+  root.querySelector("#bio-input")?.addEventListener("input", e => {
+    state.bioDraft = e.target.value.slice(0, 150);
+  });
+
+  /* board input */
+  root.querySelector("#board-input")?.addEventListener("input", e => {
+    state.boardDraft = e.target.value;
+    const btn = root.querySelector("[data-action='board-post']");
+    if(btn) btn.disabled = isGuest() || !state.boardDraft.trim();
+  });
+  root.querySelector("#board-input")?.addEventListener("keydown", e => {
+    if(e.key === "Enter" && !isGuest() && state.boardDraft.trim()) boardPost();
+  });
+
+  /* tag people buttons (upload modal) */
+  root.querySelectorAll("[data-tag]").forEach(btn =>
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.tag;
+      if(state.taggedIds.includes(id)) state.taggedIds = state.taggedIds.filter(x => x !== id);
+      else state.taggedIds.push(id);
+      render();
+    }));
+
+  /* bulk select checkboxes */
+  root.querySelectorAll("[data-select]").forEach(cb =>
+    cb.addEventListener("change", () => {
+      const id = cb.dataset.select;
+      if(cb.checked) state.selectedIds.add(id); else state.selectedIds.delete(id);
+      render();
+    }));
+
+  /* upload */
+  const dz = root.querySelector("#dropzone");
+  const fi = root.querySelector("#upload-file");
+  if(dz && fi){
+    dz.addEventListener("click", () => fi.click());
+    fi.addEventListener("change", e => { if(e.target.files.length) onUploadFiles(e.target.files); e.target.value = ""; });
+    dz.addEventListener("dragover", e => { e.preventDefault(); });
+    dz.addEventListener("drop", e => {
+      e.preventDefault();
+      if(e.dataTransfer.files.length) onUploadFiles(e.dataTransfer.files);
+    });
+  }
+  root.querySelector("#upload-caption")?.addEventListener("input", e => { state.uploadCaption = e.target.value; });
+  root.querySelector("#new-album-inline")?.addEventListener("input", e => { state.newAlbumName = e.target.value; });
+  root.querySelector("#new-album-modal")?.addEventListener("input", e => { state.newAlbumTitle = e.target.value.toUpperCase(); });
+  root.querySelector("#new-album-modal")?.addEventListener("keydown", e => {
+    if(e.key === "Enter" && addAlbum()){ state.newAlbumOpen = false; render(); }
+  });
+
+  /* escape closes modals */
+  document.addEventListener("keydown", e => {
+    if(e.key !== "Escape") return;
+    if(state.lightbox){ state.lightbox = null; render(); }
+    else if(state.uploadOpen){ state.uploadOpen = false; render(); }
+    else if(state.addMemberOpen){ state.addMemberOpen = false; render(); }
+    else if(state.editMemberId){ state.editMemberId = null; render(); }
+    else if(state.newAlbumOpen){ state.newAlbumOpen = false; state.newAlbumTitle = ""; render(); }
+    else if(state.pendingMember){ cancelLogin(); }
+  });
+}
+
+function boardPost(){
+  if(isGuest() || !boardDraft.trim()) return;
+  const m = me();
+  state.boardPosts.unshift({ id: Date.now().toString(36), user: (m?.name || "HERMAN").toUpperCase(), text: boardDraft.trim().toUpperCase(), at: Date.now(), color: m?.color || "#F59E0B" });
+  boardDraft = "";
+  saveBoard();
+  render();
+}
+
+function editBoardPost(idx){
+  if(!isAdmin()) return;
+  const p = state.boardPosts[idx];
+  if(!p) return;
+  const next = prompt("EDIT POST:", p.text);
+  if(next && next.trim()){ p.text = next.trim().toUpperCase(); saveBoard(); render(); }
+}
+
+function deleteBoardPost(idx){
+  if(!isAdmin()) return;
+  if(!confirm("DELETE THIS POST?")) return;
+  state.boardPosts.splice(idx, 1);
+  saveBoard();
+  render();
+}
+
+/* ---------------- PERSIST + BOOT ---------------- */
+function loadPersisted(){
+  try{
+    const m = localStorage.getItem(LS.members);
+    if(m){ const a = JSON.parse(m); if(Array.isArray(a) && a.length) state.members = a; }
+    const al = localStorage.getItem(LS.albums);
+    if(al){ const a = JSON.parse(al); if(Array.isArray(a) && a.length) state.albums = a; }
+    const p = localStorage.getItem(LS.passwords);
+    if(p) state.passwords = JSON.parse(p) || {};
+    const s = localStorage.getItem(LS.session);
+    if(s) state.session = JSON.parse(s);
+    const tr = localStorage.getItem(LS.trash);
+    if(tr) state.trash = JSON.parse(tr) || [];
+    const b = localStorage.getItem(LS.board);
+    if(b) state.boardPosts = JSON.parse(b) || [];
+  }catch(e){ console.warn("loadPersisted", e); }
+}
+function saveSessionOnly(){
+  try{
+    if(state.session) localStorage.setItem(LS.session, JSON.stringify(state.session));
+    else localStorage.removeItem(LS.session);
+  }catch(e){}
+}
+
+const _origLogout = logout;
+logout = function(){ _origLogout(); saveSessionOnly(); };
+const _origLogin = login;
+login = function(id){
+  _origLogin(id);
+  saveSessionOnly();
+};
+continueAsGuest = (function(orig){
+  return function(){ orig(); saveSessionOnly(); };
+})(continueAsGuest);
+
+loadPersisted();
+render();
+if(state.session){
+  apiListPhotos().then(() => apiListBoard()).then(render);
+}
+</script>
+</body>
+</html>

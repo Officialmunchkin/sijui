@@ -1,0 +1,38 @@
+# --- Dependencies ---
+node_modules/
+vendor/
+
+# --- Build output ---
+frontend/dist/
+
+# --- Secrets & local config (NEVER commit) ---
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# --- Local database / runtime data ---
+backend/database/database.sqlite
+backend/database/*.sqlite
+*.sqlite
+
+# --- Laravel runtime dirs (keep .gitignore, drop contents) ---
+backend/storage/logs/*.log
+backend/storage/logs/*.log.*
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/app/public/*
+backend/bootstrap/cache/*.php
+
+# --- Tool / editor config ---
+.qodo/
+.vscode/
+.idea/
+
+# --- OS junk ---
+Thumbs.db
+Desktop.ini
+.DS_Store
