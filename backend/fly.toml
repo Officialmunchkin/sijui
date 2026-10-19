@@ -41,10 +41,11 @@ primary_region = "ams"
   FAMVAULT_ADMIN_ID = "herman"
   FAMVAULT_SESSION_DAYS = "30"
 
-  # Frontend origin. https://*.netlify.app is also allowed as a regex pattern
-  # in config/cors.php, so preview URLs work without editing this.
-  FRONTEND_URL = "https://famvault.netlify.app"
-  CORS_ALLOWED_ORIGINS = "https://famvault.netlify.app"
+  # Frontend origin (Netlify). https://*.netlify.app is also allowed as a regex
+  # pattern in config/cors.php, so preview URLs and renamed sites work without
+  # editing this.
+  FRONTEND_URL = "https://kashifamily.netlify.app"
+  CORS_ALLOWED_ORIGINS = "https://kashifamily.netlify.app"
 
 [http_service]
   internal_port = 80
