@@ -6,13 +6,15 @@
 // VITE_USE_WORKER_FILES=true to fetch bytes straight from the Worker instead.
 // No R2/Worker secrets ever reach the browser — the Worker holds the keys.
 //
-// NOTE: VITE_API_BASE already includes the /api suffix, e.g.
+// NOTE: the API base already includes the /api suffix, e.g.
 //   https://famvault-backend.fly.dev/api
-const API_BASE = (import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api').replace(/\/+$/, '')
+// Accepts VITE_API_BASE_URL (production) or VITE_API_BASE.
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api').replace(/\/+$/, '')
 
 // Public Cloudflare Worker in front of the R2 bucket (keys stay server-side).
 // Only used when VITE_USE_WORKER_FILES is enabled.
-const R2_BASE = (import.meta.env.VITE_R2_WORKER || 'https://famvault-r2.famvault.workers.dev').replace(/\/+$/, '')
+// Accepts VITE_R2_BASE (production) or VITE_R2_WORKER.
+const R2_BASE = (import.meta.env.VITE_R2_BASE || import.meta.env.VITE_R2_WORKER || 'https://famvault-r2.famvault.workers.dev').replace(/\/+$/, '')
 const USE_WORKER_FILES = String(import.meta.env.VITE_USE_WORKER_FILES || '') === 'true'
 
 let TOKEN = localStorage.getItem('famvault_token') || ''

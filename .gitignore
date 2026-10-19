@@ -38,3 +38,6 @@ backend/bootstrap/cache/*.php
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Local Netlify folder
+.netlify
