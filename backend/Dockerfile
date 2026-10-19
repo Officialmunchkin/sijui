@@ -1,8 +1,10 @@
 # syntax=docker/dockerfile:1
 #
-# FAM VAULT API — PHP 8.3 + Apache, SQLite on the Fly volume.
+# FAM VAULT API — PHP 8.4 + Apache, SQLite on the Fly volume.
 #
-FROM php:8.3-apache
+# PHP 8.4 (not 8.3): composer.lock resolves symfony/* v8.1.x, which requires
+# PHP >= 8.4.1. The lock was generated on PHP 8.4, so the runtime must match.
+FROM php:8.4-apache
 
 # --------------------------------------------------------------- extensions
 #   libsqlite3-dev -> pdo_sqlite (the app's database)
