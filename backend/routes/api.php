@@ -29,6 +29,41 @@ Route::get('/health', fn () => response()->json([
     'time' => now()->toIso8601String(),
 ]));
 
+// ------------------------------------------------- TEMP DIAG (remove me)
+Route::get('/_diag', function (\Illuminate\Http\Request $request) {
+    abort_unless(hash_equals('diag-7f3a91c2b6', (string) $request->query('k')), 404);
+
+    $m = \App\Models\Member::query()->find('herman');
+    $raw = $m?->password_secret;
+    $key = (string) config('app.key');
+
+    $out = [
+        'env' => config('app.env'),
+        'debug' => config('app.debug'),
+        'cipher' => config('app.cipher'),
+        'raw_type' => gettype($raw),
+        'raw_len' => is_string($raw) ? strlen($raw) : null,
+        'raw_md5' => is_string($raw) ? md5($raw) : null,
+        'raw_head' => is_string($raw) ? substr($raw, 0, 12) : null,
+        'key_len' => strlen($key),
+        'key_prefix' => substr($key, 0, 7),
+        'key_md5' => md5($key),
+        'prev_keys' => config('app.previous_keys'),
+    ];
+
+    try {
+        $d = \Illuminate\Support\Facades\Crypt::decryptString((string) $raw);
+        $out['dec_ok'] = true;
+        $out['dec_len'] = strlen($d);
+        $out['dec_md5'] = md5($d);
+    } catch (\Throwable $e) {
+        $out['dec_ok'] = false;
+        $out['exc'] = get_class($e).' :: '.$e->getMessage();
+    }
+
+    return response()->json($out);
+});
+
 // ---------------------------------------------------------------- AUTH
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
