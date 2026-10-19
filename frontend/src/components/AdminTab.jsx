@@ -1,133 +1,147 @@
-import { useVault } from "../VaultContext";
-import Avatar from "./Avatar";
-import { bdayInfo } from "../utils";
+import { useVault } from '../VaultContext'
+import Avatar from './Avatar'
 
 export default function AdminTab() {
-  const v = useVault();
-  const { members, albums, passwordSet, photos, trash, boardPosts, setNewAlbumOpen, setMemberModal } = v;
+  const {
+    state, set, isAdmin,
+    removeMember, adminSetPassword, deleteAlbum, emptyTrash, toast,
+  } = useVault()
 
-  async function setPassword(m) {
-    const pw = window.prompt(`SET PASSWORD FOR ${m.name}:\n(leave empty to clear)`, "");
-    if (pw == null) return;
-    const res = await v.setMemberPassword(m.id, pw);
-    if (!res.ok) v.toast(res.error || "FAILED");
+  if (!isAdmin) {
+    return <div className="empty">ADMIN ACCESS ONLY — SORRY 😬</div>
   }
 
-  async function remove(m) {
-    if (!window.confirm(`REMOVE MEMBER "${m.name}"? THIS CANNOT BE UNDONE.`)) return;
-    const res = await v.removeMember(m.id);
-    if (!res.ok) v.toast(res.error || "REMOVE FAILED");
-  }
-
-  async function removeAlbum(a) {
-    if (["UNSORTED", "TRASH"].includes(a)) return v.toast("SYSTEM ALBUM CANNOT BE DELETED");
-    if (!window.confirm(`DELETE ALBUM "${a}"? PHOTOS MOVE TO UNSORTED.`)) return;
-    const res = await v.deleteAlbum(a);
-    if (!res.ok) v.toast(res.error || "DELETE FAILED");
-  }
-
-  const today = members.map((m) => ({ m, bd: bdayInfo(m) })).filter((x) => x.bd.isToday || (x.bd.days != null && x.bd.days <= 30));
+  const setCount = state.members.filter((m) => m.hasPassword).length
 
   return (
-    <div>
-      <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".18em", color: "#fff", marginBottom: 16 }}>
-        ADMIN CONTROL PANEL
+    <>
+      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.25em', color: 'var(--danger)' }}>
+        ⚠ ADMIN PANEL
       </div>
 
-      <div className="stat3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", marginBottom: 20 }}>
-        <div className="stat-box">
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#fff" }}>{photos.length}</div>
-          <div className="stat-lbl">PHOTOS</div>
-        </div>
-        <div className="stat-box">
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#fff" }}>{albums.length}</div>
-          <div className="stat-lbl">ALBUMS</div>
-        </div>
-        <div className="stat-box">
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#fff" }}>{members.length}</div>
-          <div className="stat-lbl">MEMBERS</div>
-        </div>
-        <div className="stat-box">
-          <div style={{ fontSize: 22, fontWeight: 800, color: "var(--danger)" }}>{trash.length}</div>
-          <div className="stat-lbl">IN TRASH</div>
-        </div>
-        <div className="stat-box">
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#fff" }}>{boardPosts.length}</div>
-          <div className="stat-lbl">BOARD POSTS</div>
-        </div>
-      </div>
-
-      <div className="card admin-2col" style={{ display: "grid", gap: 16, marginBottom: 16 }}>
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".16em", color: "#fff" }}>MEMBERS</span>
-            <button className="btn primary mini" onClick={() => setMemberModal({ mode: "add" })}>+ ADD</button>
+      {/* ---------- MEMBERS MANAGEMENT ---------- */}
+      <div className="card" style={{ marginTop: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 11, letterSpacing: '.3em', color: '#C4B5FD', fontWeight: 700 }}>
+            MEMBERS • ADD / EDIT / REMOVE
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {members.map((m) => (
-              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12 }}>
-                <Avatar member={m} cls="sm" />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", color: "#fff" }}>
-                    {m.name} {m.is_admin && <span className="tag admin">ADMIN</span>}
-                  </div>
-                  <div style={{ fontSize: 9, color: "var(--dim)" }}>
-                    @{m.handle} • {passwordSet.includes(m.id) ? "PASSWORD SET" : "NO PASSWORD"}
-                  </div>
+          <button className="btn mini primary" onClick={() => set({ addMemberOpen: true })}>+ ADD MEMBER</button>
+        </div>
+        <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+          {state.members.map((m) => (
+            <div
+              key={m.id}
+              style={{ padding: 14, borderRadius: 16, border: '1px solid var(--line)', background: 'var(--surface2)', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}
+            >
+              <Avatar member={m} size="sm" />
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#fff' }}>
+                  {m.name} {m.isAdmin && <span className="tag admin">ADMIN</span>}
                 </div>
-                <button className="btn mini" onClick={() => setMemberModal({ mode: "edit", member: m })}>EDIT</button>
-                <button className="btn mini" onClick={() => setPassword(m)}>PW</button>
-                <button className="btn danger mini" onClick={() => remove(m)}>✕</button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".16em", color: "#fff" }}>ALBUMS</span>
-            <button className="btn primary mini" onClick={() => setNewAlbumOpen(true)}>+ NEW</button>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {albums.map((a) => {
-              const isSystem = ["UNSORTED", "TRASH"].includes(a);
-              return (
-                <div key={a} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12 }}>
-                  <div style={{ flex: 1, fontSize: 11, fontWeight: 800, letterSpacing: ".08em", color: "#fff" }}>
-                    {a} {isSystem && <span className="tag guest">SYSTEM</span>}
-                  </div>
-                  {!isSystem && (
-                    <button className="btn danger mini" onClick={() => removeAlbum(a)}>DELETE</button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".16em", color: "#fff", marginBottom: 12 }}>
-          UPCOMING BIRTHDAYS
-        </div>
-        {today.length === 0 ? (
-          <div className="empty" style={{ padding: 20 }}>NONE IN THE NEXT 30 DAYS</div>
-        ) : (
-          <div className="bday-grid" style={{ display: "grid", gap: 8 }}>
-            {today.map(({ m, bd }) => (
-              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12 }}>
-                <Avatar member={m} cls="sm" />
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#fff" }}>{m.name}</div>
-                  <div style={{ fontSize: 9, color: bd.isToday ? "var(--pink)" : "var(--amber)", letterSpacing: ".1em" }}>
-                    {bd.text}
-                  </div>
+                <div style={{ fontSize: 9, letterSpacing: '.16em', color: 'var(--dim)' }}>
+                  @{m.handle || m.id} • {m.relation || 'FAMILY'}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="btn mini" onClick={() => set({ editMemberId: m.id, editMember: { ...m } })}>✎ EDIT</button>
+                {!m.isAdmin && (
+                  <button className="btn mini danger" onClick={() => removeMember(m.id).catch((e) => toast(e.message || 'REMOVE FAILED'))}>
+                    🗑 REMOVE
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+
+      {/* ---------- PASSWORDS ---------- */}
+      <div className="card" style={{ marginTop: 14, borderColor: 'rgba(139,92,246,.3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 11, letterSpacing: '.3em', color: '#C4B5FD', fontWeight: 700 }}>
+            PASSWORDS • ADMIN CAN SET / RESET
+          </div>
+          <span style={{ fontSize: 9, padding: '4px 8px', borderRadius: 999, background: 'rgba(139,92,246,.2)', border: '1px solid rgba(139,92,246,.3)', color: '#C4B5FD' }}>
+            {setCount}/{state.members.length} SET
+          </span>
+        </div>
+        <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+          {state.members.map((m) => (
+            <div key={m.id} style={{ padding: 14, borderRadius: 16, border: '1px solid var(--line)', background: 'var(--surface2)', display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div className="field-label">NEW PASSWORD FOR {m.name}</div>
+                <input
+                  className="input"
+                  type="password"
+                  placeholder="••••••••"
+                  value={state.adminPwDrafts[m.id] || ''}
+                  onChange={(e) => set({ adminPwDrafts: { ...state.adminPwDrafts, [m.id]: e.target.value } })}
+                />
+              </div>
+              <button className="btn mini primary" onClick={() => adminSetPassword(m.id).catch((e) => toast(e.message || 'SET FAILED'))}>
+                SET PASSWORD
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ---------- ALBUMS ---------- */}
+      <div className="card" style={{ marginTop: 14, borderColor: 'rgba(236,72,153,.3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 11, letterSpacing: '.3em', color: '#F9A8D4', fontWeight: 700 }}>
+            ALBUMS • CREATE / DELETE
+          </div>
+          <button className="btn mini primary" onClick={() => set({ newAlbumOpen: true, newAlbumTitle: '' })}>+ NEW ALBUM</button>
+        </div>
+        <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+          {state.albums.map((a) => {
+            const count = state.photos.filter((p) => p.album === a).length
+            return (
+              <div key={a} style={{ padding: 12, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--surface2)', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 140 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#fff' }}>{a}</div>
+                  <div style={{ fontSize: 9, letterSpacing: '.16em', color: 'var(--dim)' }}>{count} MEMORIES</div>
+                </div>
+                <button
+                  className="btn mini danger"
+                  onClick={() => {
+                    if (!confirm(`DELETE ALBUM ${a}? ALL ${count} PHOTOS WILL GO TO TRASH`)) return
+                    deleteAlbum(a).catch((e) => toast(e.message || 'DELETE FAILED'))
+                  }}
+                >
+                  🗑 DELETE
+                </button>
+              </div>
+            )
+          })}
+        </div>
+        <div style={{ marginTop: 10, fontSize: 9, letterSpacing: '.16em', color: 'var(--dim)' }}>
+          DELETING AN ALBUM SENDS ITS PHOTOS STRAIGHT TO TRASH — THEY CAN BE RESTORED FROM THE TRASH TAB.
+        </div>
+      </div>
+
+      {/* ---------- DANGER ZONE ---------- */}
+      <div className="card" style={{ marginTop: 14, borderColor: 'rgba(255,107,138,.3)' }}>
+        <div style={{ fontSize: 11, letterSpacing: '.3em', color: 'var(--danger)', fontWeight: 700 }}>
+          DANGER ZONE
+        </div>
+        <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            className="btn danger"
+            onClick={() => {
+              if (!state.trash.length) { toast('TRASH IS EMPTY'); return }
+              if (!confirm(`EMPTY TRASH? ${state.trash.length} ITEMS WILL BE PERMANENTLY DELETED.`)) return
+              emptyTrash().catch((e) => toast(e.message || 'EMPTY FAILED'))
+            }}
+          >
+            🗑 EMPTY TRASH ({state.trash.length})
+          </button>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 9, letterSpacing: '.16em', color: 'var(--dim)' }}>
+          PERMANENT DELETES CANNOT BE UNDONE — FILES ARE PURGED FROM R2 STORAGE.
+        </div>
+      </div>
+    </>
+  )
 }

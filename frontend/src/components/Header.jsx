@@ -1,102 +1,82 @@
-import { useVault } from "../VaultContext";
-import Avatar from "./Avatar";
+import { useVault } from '../VaultContext'
+import Avatar from './Avatar'
 
-const TABS = ["HOME", "ALBUMS", "MEMBERS", "BOARD"];
+export default function Header({ tabs }) {
+  const { state, set, logout, isAdmin, canSeeTrash } = useVault()
 
-export default function Header() {
-  const v = useVault();
-  const { me, isGuest, canModerate, tab, setTab, search, setSearch, logout, selectMode, setSelectMode } = v;
-
-  function go(t) {
-    setTab(t);
-    if (t !== "HOME") setSelectMode(false);
-  }
+  const visibleTabs = tabs.filter((t) => {
+    if (t === 'TRASH') return canSeeTrash
+    return true
+  })
 
   return (
-    <div className="header">
+    <header className="header">
       <div className="header-in">
-        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-          <div
-            style={{
-              fontSize: 18, fontWeight: 800, letterSpacing: ".12em", cursor: "pointer",
-              background: "linear-gradient(180deg,#C4B5FD,#8B5CF6,#6366F1)",
-              WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
-            }}
-            onClick={() => go("HOME")}
-          >
-            FAM VAULT
-          </div>
-
-          {me && (
-            <div className="who desktop-only">
-              <Avatar member={me} cls="sm" />
-              <div>
-                <div className="who-b">{me.name}</div>
-                <div style={{ fontSize: 9, color: "var(--dim)" }}>
-                  {me.relation}
-                </div>
-              </div>
-              {me.is_admin && <span className="tag admin">ADMIN</span>}
-              {isGuest && <span className="tag guest">GUEST</span>}
-            </div>
-          )}
+        <div className="who">
+          <Avatar member={state.me} size="sm" />
+          <span>
+            <span className="who-b">{state.me.name}</span>
+            {state.me.isAdmin && (
+              <>
+                {' '}<span className="tag admin">ADMIN</span>
+              </>
+            )}
+            {state.me.isGuest && (
+              <>
+                {' '}<span className="tag guest">GUEST</span>
+              </>
+            )}
+          </span>
+          <button className="btn mini" onClick={logout}>LOGOUT</button>
         </div>
 
-        <div className="tabs">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              className={`tab ${tab === t ? "active" : ""}`}
-              onClick={() => go(t)}
-            >
-              {t}
-            </button>
-          ))}
-
-          {canModerate && (
-            <>
+        <nav className="tabs" aria-label="Vault sections">
+          {visibleTabs.map((t) => {
+            const count = t === 'TRASH' && state.trash.length ? ` (${state.trash.length})` : ''
+            const danger = (t === 'ADMIN' || t === 'TRASH') && state.tab !== t
+            return (
               <button
-                className={`tab danger-tab ${tab === "TRASH" ? "active" : ""}`}
-                onClick={() => go("TRASH")}
+                key={t}
+                className={`tab ${state.tab === t ? 'active' : ''} ${danger ? 'tab-admin-style' : ''}`}
+                style={danger ? { background: '#1A1220', borderColor: '#3A1A2A', color: 'var(--danger)' } : undefined}
+                onClick={() => set({ tab: t, selectMode: false, selected: [] })}
               >
-                TRASH
+                {t}{count}
               </button>
-              <button
-                className={`tab ${tab === "ADMIN" ? "active" : ""}`}
-                onClick={() => go("ADMIN")}
-              >
-                ADMIN
-              </button>
-            </>
-          )}
+            )
+          })}
+        </nav>
 
-          <button className="btn mini" onClick={logout}>
-            LOG OUT
-          </button>
-        </div>
-      </div>
-
-      <div className="hero">
-        <div className="hero-row" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="search" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <input
-            className="input search"
-            placeholder="SEARCH MEMBERS OR PHOTOS..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            className="input"
+            style={{ height: 36 }}
+            placeholder="🔍 SEARCH MEMORIES…"
+            value={state.search}
+            onChange={(e) => set({ search: e.target.value })}
+            aria-label="Search memories"
           />
-          {tab === "HOME" && !isGuest && (
-            <button
-              className={`btn mini ${selectMode ? "primary" : ""}`}
-              onClick={() => {
-                setSelectMode(!selectMode);
-                v.setSelected({});
-              }}
-            >
-              {selectMode ? "EXIT SELECT" : "SELECT"}
-            </button>
+          {state.search && (
+            <button className="btn mini" onClick={() => set({ search: '' })} aria-label="Clear search">✕</button>
           )}
         </div>
+
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              className={`btn mini ${state.selectMode ? 'primary' : ''}`}
+              onClick={() => set({ selectMode: !state.selectMode, selected: [] })}
+            >
+              {state.selectMode ? 'EXIT SELECT' : '☑ SELECT'}
+            </button>
+            {state.selectMode && state.selected.length > 0 && (
+              <button className="btn mini danger" onClick={() => set({ selectMode: false, selected: [] })}>
+                CLEAR ({state.selected.length})
+              </button>
+            )}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    </header>
+  )
 }

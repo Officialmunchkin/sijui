@@ -2,23 +2,28 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/** A post on the shared family board. */
 class BoardPost extends Model
 {
-    use HasFactory;
+    protected $fillable = [
+        'member_id',
+        'user',
+        'text',
+        'color',
+    ];
 
-    protected $fillable = ['post_id', 'user', 'text', 'color', 'at'];
-
-    public function toApiArray(): array
+    /** Shape used by the original board UI. */
+    public function toClientArray(): array
     {
         return [
-            'id' => $this->post_id,
+            'id' => $this->id,
+            'member_id' => $this->member_id,
             'user' => $this->user,
             'text' => $this->text,
             'color' => $this->color,
-            'at' => $this->at,
+            'at' => $this->created_at?->getTimestamp() * 1000,
         ];
     }
 }

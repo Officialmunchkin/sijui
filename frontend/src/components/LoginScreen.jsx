@@ -1,143 +1,80 @@
-import { useState } from "react";
-import Avatar from "./Avatar";
+import { useVault } from '../VaultContext'
+import Avatar from './Avatar'
 
-export default function LoginScreen({ members, passwordSet, onLogin, onGuest }) {
-  const [pending, setPending] = useState(null); // {member, isNew}
-  const [pw, setPw] = useState("");
-  const [pw2, setPw2] = useState("");
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
+export default function LoginScreen() {
+  const { state, set, submitLogin, continueAsGuest } = useVault()
 
-  function pick(m) {
-    const isNew = !passwordSet.includes(m.id);
-    setPending({ member: m, isNew });
-    setPw("");
-    setPw2("");
-    setErr("");
+  const pick = (m) => {
+    set({ pendingId: m.id, pwInput: '', pwError: '' })
+    setTimeout(() => document.getElementById('login-pw')?.focus(), 50)
   }
 
-  async function submit(e) {
-    e.preventDefault();
-    if (!pending) return;
-    if (pending.isNew && pw !== pw2) {
-      setErr("PASSWORDS DO NOT MATCH");
-      return;
-    }
-    setBusy(true);
-    setErr("");
-    try {
-      await onLogin(pending.member.id, pw);
-    } catch (e2) {
-      setErr(e2.message === "WRONG PASSWORD" ? "WRONG PASSWORD" : "LOGIN FAILED");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const pending = state.members.find((m) => m.id === state.pendingId)
 
   return (
     <div className="login">
       <div className="login-inner">
         <div className="logo-big">FAM VAULT</div>
-        <div className="login-sub">Private family photo vault</div>
+        <div className="login-sub">THE KASHI FAMILY • PRIVATE MEMORY VAULT</div>
 
         <div className="member-grid">
-          {members.map((m) => (
-            <button
+          {state.members.map((m) => (
+            <div
               key={m.id}
-              className="member-card"
+              className={`member-card ${state.pendingId === m.id ? 'active' : ''}`}
+              role="button"
+              tabIndex={0}
               onClick={() => pick(m)}
-              disabled={busy}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(m) } }}
             >
               <div className="member-top">
-                <Avatar member={m} cls="md" />
-                <span className="dot" />
+                <Avatar member={m} />
+                <span className="dot" title="ACTIVE" />
               </div>
               <div className="member-name">
                 {m.name}
-                {m.is_admin && <span className="tag admin">ADMIN</span>}
+                {m.isAdmin && <span className="tag admin">ADMIN</span>}
               </div>
-              <div className="member-handle">@{m.handle}</div>
+              <div className="member-handle">@{m.handle || m.id}</div>
               <div className="member-relation">{m.relation}</div>
-            </button>
+            </div>
           ))}
         </div>
 
-        <div className="login-actions">
-          <button className="btn" onClick={onGuest} disabled={busy}>
-            CONTINUE AS GUEST
-          </button>
-        </div>
-        {members.length === 0 && (
-          <div className="empty" style={{ marginTop: 24 }}>
-            NO MEMBERS YET — START THE BACKEND SERVER
-          </div>
-        )}
-      </div>
-
-      {pending && (
-        <div className="overlay">
-          <div className="backdrop" onClick={() => !busy && setPending(null)} />
-          <form className="modal" onSubmit={submit}>
-            <button
-              type="button"
-              className="x"
-              onClick={() => setPending(null)}
-              disabled={busy}
-            >
-              ×
-            </button>
-            <div style={{ textAlign: "center", marginBottom: 20 }}>
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-                <Avatar member={pending.member} cls="md" />
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: ".14em", color: "#fff" }}>
-                {pending.member.name}
-              </div>
-              <div style={{ fontSize: 10, letterSpacing: ".2em", color: "var(--dim)", marginTop: 6 }}>
-                {pending.isNew
-                  ? "FIRST TIME — SET YOUR PASSWORD"
-                  : "ENTER YOUR PASSWORD TO UNLOCK"}
-              </div>
-            </div>
-
-            <div className="field-label">PASSWORD</div>
+        {pending && (
+          <div className="card" style={{ marginTop: 24, textAlign: 'left' }}>
+            <div className="field-label">PASSWORD FOR {pending.name}</div>
             <input
+              id="login-pw"
               className="input"
               type="password"
               autoFocus
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              placeholder="••••••••"
+              value={state.pwInput}
+              placeholder="ENTER PASSWORD"
+              onChange={(e) => set({ pwInput: e.target.value, pwError: '' })}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitLogin() }}
             />
+            {state.pwError && <div className="err-box">{state.pwError}</div>}
+            <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+              <button className="btn" onClick={() => set({ pendingId: null, pwError: '', pwInput: '' })}>
+                ← BACK
+              </button>
+              <button className="btn primary" style={{ flex: 1 }} onClick={submitLogin}>
+                LOGIN →
+              </button>
+            </div>
+            <div style={{ marginTop: 14, textAlign: 'center', fontSize: 9, letterSpacing: '.2em', color: '#3A3A5A' }}>
+              VAULT SECURE • FIRST LOGIN SETS YOUR PASSWORD
+            </div>
+          </div>
+        )}
 
-            {pending.isNew && (
-              <>
-                <div className="field-label" style={{ marginTop: 14 }}>
-                  CONFIRM PASSWORD
-                </div>
-                <input
-                  className="input"
-                  type="password"
-                  value={pw2}
-                  onChange={(e) => setPw2(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </>
-            )}
-
-            {err && <div className="err-box">{err}</div>}
-
-            <button
-              className="btn primary"
-              type="submit"
-              disabled={busy || !pw || (pending.isNew && !pw2)}
-              style={{ width: "100%", marginTop: 18 }}
-            >
-              {busy ? "CHECKING..." : pending.isNew ? "SET PASSWORD & ENTER" : "UNLOCK"}
-            </button>
-          </form>
+        <div className="login-actions">
+          <button className="btn" onClick={continueAsGuest}>
+            👤 CONTINUE AS GUEST
+          </button>
         </div>
-      )}
+      </div>
     </div>
-  );
+  )
 }

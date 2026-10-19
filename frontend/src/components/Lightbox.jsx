@@ -1,94 +1,82 @@
-import { useEffect } from "react";
-import { useVault } from "../VaultContext";
-import Avatar from "./Avatar";
+import { useEffect } from 'react'
+import { useVault } from '../VaultContext'
+import { fileURL, downloadPhoto } from '../api'
+import { formatBytes } from '../utils'
 
 export default function Lightbox() {
-  const v = useVault();
-  const p = v.lightbox;
-  const { me, isGuest, canModerate } = v;
+  const { state, set, isGuest, trashPhotos, toast } = useVault()
+  const photo = state.lightbox
 
-  const uploader = v.members.find((m) => m.id === p.uploadedBy);
-  const taggedMembers = (p.tagged || []).map((id) => v.members.find((m) => m.id === id)).filter(Boolean);
-  const canDelete = canModerate || (!isGuest && me?.id === p.uploadedBy);
+  const close = () => set({ lightbox: null })
 
-  function close() {
-    v.setLightbox(null);
-  }
-
-  async function del() {
-    if (!window.confirm("MOVE THIS PHOTO TO TRASH?")) return;
-    await v.trashPhotos([p.id]);
-    close();
-  }
-
-  // keyboard nav
   useEffect(() => {
-    function onKey(e) {
-      if (e.key === "Escape") close();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
+    const onKey = (e) => { if (e.key === 'Escape') close() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  if (!photo) return null
+  const src = photo.src || fileURL(photo.key)
+  const isVideo = photo.type === 'video'
+
+  const doTrash = async () => {
+    if (!confirm('MOVE THIS PHOTO TO TRASH?')) return
+    try {
+      await trashPhotos([photo.id])
+      close()
+      toast('MOVED TO TRASH')
+    } catch (e) { toast(e.message || 'TRASH FAILED') }
+  }
 
   return (
-    <div className="overlay">
+    <div className="overlay" role="dialog" aria-modal="true" aria-label="Photo viewer">
       <div className="backdrop" onClick={close} />
       <div className="lb-panel">
-        <div style={{ flex: 2, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 260 }}>
-          {p.type === "video" ? (
-            <video src={p.src} controls autoPlay style={{ maxWidth: "100%", maxHeight: "70vh" }} />
+        <button className="x" style={{ zIndex: 2 }} onClick={close} aria-label="Close viewer">✕</button>
+
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#05050C', minHeight: 240 }}>
+          {isVideo ? (
+            <video src={src} controls autoPlay style={{ maxWidth: '100%', maxHeight: '70vh' }} />
           ) : (
-            <img src={p.src} alt={p.caption || ""} style={{ maxWidth: "100%", maxHeight: "70vh", objectFit: "contain" }} />
+            <img src={src} alt={photo.caption || 'Family memory'} style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
           )}
         </div>
 
-        <div style={{ flex: 1, padding: 20, position: "relative", overflowY: "auto" }}>
-          <button className="x" onClick={close}>×</button>
-
-          <div style={{ fontSize: 9, letterSpacing: ".2em", color: "var(--accent)", fontWeight: 800 }}>
-            {p.album || "UNSORTED"}
+        <div style={{ padding: 18, borderTop: '1px solid var(--line)' }}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.16em', color: '#fff', wordBreak: 'break-word' }}>
+            {photo.caption || 'UNTITLED'}
           </div>
-          {p.caption && (
-            <div style={{ fontSize: 13, color: "#fff", marginTop: 10, lineHeight: 1.5 }}>{p.caption}</div>
-          )}
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16 }}>
-            {uploader && <Avatar member={uploader} cls="sm" />}
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: "#fff" }}>
-                @{p.uploadedBy || "UNKNOWN"}
-              </div>
-              <div style={{ fontSize: 9, color: "var(--dim)" }}>
-                {p.date || ""} {p.size ? `• ${(p.size / 1024 / 1024).toFixed(1)}MB` : ""}
-              </div>
-            </div>
+          <div style={{ marginTop: 6, fontSize: 10, letterSpacing: '.16em', color: 'var(--dim)' }}>
+            {(photo.uploadedBy || '').toUpperCase()} • {photo.album} • {photo.date || ''} {photo.size ? `• ${formatBytes(photo.size)}` : ''}
           </div>
 
-          {taggedMembers.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 9, letterSpacing: ".2em", color: "var(--dim)", marginBottom: 8 }}>TAGGED</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {taggedMembers.map((m) => (
-                  <span key={m.id} className="member-relation">@{m.handle}</span>
-                ))}
-              </div>
+          {Array.isArray(photo.tagged) && photo.tagged.length > 0 && (
+            <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {photo.tagged.map((t) => (
+                <span key={t} className="tag guest">@{String(t).toUpperCase()}</span>
+              ))}
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 8, marginTop: 22, flexWrap: "wrap" }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
             {!isGuest && (
-              <a className="btn mini" href={p.src} download target="_blank" rel="noreferrer">
-                DOWNLOAD
-              </a>
-            )}
-            {canDelete && (
-              <button className="btn danger mini" onClick={del}>
-                MOVE TO TRASH
+              <button className="btn" onClick={() => downloadPhoto(photo).catch(() => toast('DOWNLOAD FAILED'))}>
+                ⬇ DOWNLOAD
               </button>
+            )}
+            {!isGuest && (
+              <button className="btn danger" onClick={doTrash}>
+                🗑 MOVE TO TRASH
+              </button>
+            )}
+            {isGuest && (
+              <span style={{ fontSize: 9, letterSpacing: '.2em', color: 'var(--dim)' }}>
+                GUESTS CANNOT DOWNLOAD OR EDIT
+              </span>
             )}
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -1,11 +1,13 @@
-export default function Avatar({ member, cls = "md" }) {
-  if (!member) return null;
+export default function Avatar({ member, size = 'md' }) {
+  const color = member?.color || '#8B5CF6'
+  const initial = member?.initial || (member?.name || '?').charAt(0)
   return (
     <div
-      className={`avatar ${cls}`}
-      style={{ background: member.color, boxShadow: `0 0 18px ${member.color}80` }}
+      className={`avatar ${size}`}
+      style={{ background: `linear-gradient(135deg, ${color}, ${color}99)` }}
+      aria-hidden="true"
     >
-      {member.initial || (member.name || "?")[0]}
+      {initial}
     </div>
-  );
+  )
 }

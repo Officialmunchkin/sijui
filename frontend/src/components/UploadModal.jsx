@@ -1,95 +1,195 @@
-import { useState } from "react";
-import { useVault } from "../VaultContext";
-import * as api from "../api";
+import { useRef } from 'react'
+import { useVault } from '../VaultContext'
+import { mb } from '../utils'
 
 export default function UploadModal() {
-  const v = useVault();
-  const [file, setFile] = useState(null);
-  const [caption, setCaption] = useState("");
-  const [album, setAlbum] = useState(v.albumFilter !== "ALL" ? v.albumFilter : "UNSORTED");
-  const [tagged, setTagged] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  const {
+    state, set, startUpload, createAlbum, toast,
+  } = useVault()
 
-  function onFile(e) {
-    setFile(e.target.files?.[0] || null);
-    setErr("");
+  const fileRef = useRef(null)
+
+  const close = () => {
+    if (state.uploading) return
+    set({ uploadOpen: false, uploadFiles: [], uploadCaption: '', uploadTagged: [], uploadNewAlbum: false, uploadNewAlbumName: '', uploadError: '' })
   }
 
-  function toggleTag(id) {
-    setTagged((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
+  const onFiles = (e) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length) set({ uploadFiles: [...state.uploadFiles, ...files] })
+    e.target.value = ''
   }
 
-  async function submit(e) {
-    e.preventDefault();
-    if (!file) return setErr("PICK A PHOTO OR VIDEO");
-    setBusy(true);
-    setErr("");
-    try {
-      await api.apiUpload(file, caption.toUpperCase(), album, v.me?.id || "unknown", tagged);
-      v.setUploadOpen(false);
-      v.toast("UPLOADED");
-      v.loadMedia();
-    } catch (e2) {
-      setErr(e2.message || "UPLOAD FAILED");
-    } finally {
-      setBusy(false);
+  const onDrop = (e) => {
+    e.preventDefault()
+    e.currentTarget.style.borderColor = 'var(--line)'
+    const files = Array.from(e.dataTransfer.files || [])
+    if (files.length) set({ uploadFiles: [...state.uploadFiles, ...files] })
+  }
+  const onDragOver = (e) => {
+    e.preventDefault()
+    e.currentTarget.style.borderColor = 'var(--accent)'
+  }
+
+  const removeFile = (i) => set({ uploadFiles: state.uploadFiles.filter((_, idx) => idx !== i) })
+
+  const toggleTag = (id) =>
+    set({
+      uploadTagged: state.uploadTagged.includes(id)
+        ? state.uploadTagged.filter((t) => t !== id)
+        : [...state.uploadTagged, id],
+    })
+
+  const go = async () => {
+    if (!state.uploadFiles.length) return toast('PICK AT LEAST ONE FILE')
+    let album = state.uploadAlbum || (state.albums[0] || '')
+    if (state.uploadNewAlbum) {
+      const name = (state.uploadNewAlbumName || '').trim().toUpperCase()
+      if (!name) return toast('ENTER ALBUM NAME')
+      if (!state.albums.includes(name)) {
+        const ok = await createAlbum(name).catch((e) => { toast(e.message || 'CREATE FAILED'); return false })
+        if (ok === false) return
+      }
+      album = name
     }
+    try {
+      await startUpload({ album, caption: state.uploadCaption, tagged: state.uploadTagged })
+    } catch (e) { toast(e.message || 'UPLOAD FAILED') }
   }
+
+  const totalSize = state.uploadFiles.reduce((s, f) => s + f.size, 0)
 
   return (
-    <div className="overlay">
-      <div className="backdrop" onClick={() => !busy && v.setUploadOpen(false)} />
-      <form className="modal" onSubmit={submit}>
-        <button type="button" className="x" onClick={() => v.setUploadOpen(false)} disabled={busy}>×</button>
-        <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: ".16em", color: "#fff", marginBottom: 18 }}>
-          UPLOAD TO VAULT
+    <div className="overlay" role="dialog" aria-modal="true" aria-label="Upload photos">
+      <div className="backdrop" onClick={close} />
+      <div className="modal">
+        <button className="x" onClick={close} aria-label="Close upload">✕</button>
+        <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.22em', color: '#fff' }}>
+          📤 UPLOAD MEMORIES
+        </div>
+        <div style={{ marginTop: 4, fontSize: 9, letterSpacing: '.2em', color: 'var(--dim)' }}>
+          JPG • PNG • GIF • WEBP • AVIF • MP4 • WEBM • MOV — MAX 200MB EACH
         </div>
 
-        <label
+        {/* file picker */}
+        <div
+          onClick={() => fileRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === 'Enter') fileRef.current?.click() }}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          role="button"
+          tabIndex={0}
           style={{
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            gap: 8, padding: "28px 16px", borderRadius: 16, cursor: "pointer",
-            background: "#0E0E1E", border: "1px dashed var(--line)", textAlign: "center",
+            marginTop: 16, padding: '26px 14px', borderRadius: 16, border: '2px dashed var(--line)',
+            background: 'var(--surface2)', textAlign: 'center', cursor: 'pointer',
           }}
         >
-          <span style={{ fontSize: 28 }}>{file ? "📎" : "⬆"}</span>
-          <span style={{ fontSize: 10, letterSpacing: ".14em", color: file ? "#fff" : "var(--dim)" }}>
-            {file ? file.name : "TAP TO CHOOSE PHOTO OR VIDEO"}
-          </span>
-          <input type="file" accept="image/*,video/*" onChange={onFile} style={{ display: "none" }} />
-        </label>
-
-        <div className="field-label" style={{ marginTop: 16 }}>CAPTION</div>
-        <input className="input" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="WHAT'S THE STORY?" />
-
-        <div className="field-label" style={{ marginTop: 14 }}>ALBUM</div>
-        <select className="input" value={album} onChange={(e) => setAlbum(e.target.value)}>
-          {v.albums.map((a) => (
-            <option key={a} value={a}>{a}</option>
-          ))}
-        </select>
-
-        <div className="field-label" style={{ marginTop: 14 }}>TAG FAMILY</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {v.members.filter((m) => !m.is_guest).map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              className={`btn mini ${tagged.includes(m.id) ? "primary" : ""}`}
-              onClick={() => toggleTag(m.id)}
-            >
-              {m.name}
-            </button>
-          ))}
+          <div style={{ fontSize: 24 }}>＋</div>
+          <div style={{ marginTop: 6, fontSize: 10, letterSpacing: '.2em', color: 'var(--muted)' }}>
+            TAP TO PICK PHOTOS / VIDEOS
+          </div>
+          <input ref={fileRef} type="file" multiple accept="image/*,video/*" style={{ display: 'none' }} onChange={onFiles} />
         </div>
 
-        {err && <div className="err-box">{err}</div>}
+        {state.uploadFiles.length > 0 && (
+          <div style={{ marginTop: 12, maxHeight: 160, overflowY: 'auto', display: 'grid', gap: 6 }}>
+            {state.uploadFiles.map((f, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '8px 10px', borderRadius: 10, background: 'var(--surface2)', border: '1px solid var(--line)' }}>
+                <span style={{ flex: 1, fontSize: 10, letterSpacing: '.08em', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {f.name}
+                </span>
+                <span style={{ fontSize: 9, color: 'var(--dim)' }}>{mb(f.size)} MB</span>
+                <button className="btn mini danger" onClick={() => removeFile(i)} aria-label={`Remove ${f.name}`}>✕</button>
+              </div>
+            ))}
+            <div style={{ fontSize: 9, letterSpacing: '.16em', color: 'var(--dim)', textAlign: 'right' }}>
+              {state.uploadFiles.length} FILES • {mb(totalSize)} MB TOTAL
+            </div>
+          </div>
+        )}
 
-        <button className="btn primary" type="submit" disabled={busy || !file} style={{ width: "100%", marginTop: 18 }}>
-          {busy ? "UPLOADING..." : "UPLOAD"}
-        </button>
-      </form>
+        {/* album select */}
+        <div style={{ marginTop: 14 }}>
+          <div className="field-label">ALBUM</div>
+          {state.uploadNewAlbum ? (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                className="input"
+                placeholder="NEW ALBUM NAME"
+                value={state.uploadNewAlbumName}
+                onChange={(e) => set({ uploadNewAlbumName: e.target.value })}
+                autoFocus
+              />
+              <button className="btn mini" onClick={() => set({ uploadNewAlbum: false })}>← EXISTING</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <select
+                className="input"
+                value={state.uploadAlbum || (state.albums[0] || '')}
+                onChange={(e) => set({ uploadAlbum: e.target.value })}
+              >
+                {state.albums.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+              <button className="btn mini" onClick={() => set({ uploadNewAlbum: true })}>+ NEW</button>
+            </div>
+          )}
+        </div>
+
+        {/* caption */}
+        <div style={{ marginTop: 14 }}>
+          <div className="field-label">CAPTION (OPTIONAL)</div>
+          <input
+            className="input"
+            placeholder="E.G. CHRISTMAS 2024"
+            maxLength={300}
+            value={state.uploadCaption}
+            onChange={(e) => set({ uploadCaption: e.target.value })}
+          />
+        </div>
+
+        {/* tagged members */}
+        <div style={{ marginTop: 14 }}>
+          <div className="field-label">TAG PEOPLE</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {state.members.map((m) => {
+              const on = state.uploadTagged.includes(m.id)
+              return (
+                <button
+                  key={m.id}
+                  className="btn mini chip-album"
+                  style={on ? { background: 'rgba(139,92,246,.25)', borderColor: 'var(--accent)', color: '#fff' } : undefined}
+                  onClick={() => toggleTag(m.id)}
+                  aria-pressed={on}
+                >
+                  {m.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* progress */}
+        {state.uploading && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ height: 6, borderRadius: 999, background: 'var(--surface2)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${state.uploadTotal ? (state.uploadDone / state.uploadTotal) * 100 : 0}%`, background: 'linear-gradient(90deg,var(--accent2),var(--accent))', transition: 'width .2s' }} />
+            </div>
+            <div style={{ marginTop: 6, fontSize: 9, letterSpacing: '.2em', color: 'var(--muted)', textAlign: 'center' }}>
+              UPLOADING {state.uploadDone}/{state.uploadTotal}…
+            </div>
+          </div>
+        )}
+
+        {state.uploadError && <div className="err-box">{state.uploadError}</div>}
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+          <button className="btn" onClick={close} disabled={state.uploading}>CANCEL</button>
+          <button className="btn primary" style={{ flex: 1 }} onClick={go} disabled={state.uploading || !state.uploadFiles.length}>
+            {state.uploading ? 'UPLOADING…' : `UPLOAD ${state.uploadFiles.length || ''} →`}
+          </button>
+        </div>
+      </div>
     </div>
-  );
+  )
 }

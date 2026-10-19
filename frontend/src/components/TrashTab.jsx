@@ -1,48 +1,61 @@
-import { useVault } from "../VaultContext";
+import { useVault } from '../VaultContext'
+import TrashCard from './TrashCard'
 
 export default function TrashTab() {
-  const v = useVault();
-  const { trash } = v;
+  const { state, set, restorePhotos, deletePhotoForever, emptyTrash, toast } = useVault()
+
+  const selected = state.selected
+
+  const restoreSelected = async () => {
+    if (!selected.length) return
+    try {
+      await restorePhotos(selected)
+      set({ selected: [] })
+      toast('RESTORED')
+    } catch (e) { toast(e.message || 'RESTORE FAILED') }
+  }
+
+  const deleteSelected = async () => {
+    if (!selected.length) return
+    if (!confirm(`PERMANENTLY DELETE ${selected.length} PHOTOS? THIS CANNOT BE UNDONE.`)) return
+    try {
+      for (const id of [...selected]) await deletePhotoForever(id)
+      set({ selected: [] })
+    } catch (e) { toast(e.message || 'DELETE FAILED') }
+  }
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".18em", color: "var(--danger)" }}>
-          TRASH ({trash.length})
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.25em', color: 'var(--danger)' }}>
+          TRASH <span style={{ color: 'var(--dim)' }}>({state.trash.length})</span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn mini" onClick={v.restoreAll} disabled={!trash.length}>
-            RESTORE ALL
-          </button>
-          <button className="btn danger mini" onClick={v.emptyTrash} disabled={!trash.length}>
-            EMPTY TRASH
-          </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {selected.length > 0 && (
+            <>
+              <button className="btn mini" onClick={restoreSelected}>↩ RESTORE SELECTED ({selected.length})</button>
+              <button className="btn mini danger" onClick={deleteSelected}>🗑 DELETE SELECTED</button>
+            </>
+          )}
+          {state.trash.length > 0 && (
+            <button className="btn mini danger" onClick={() => emptyTrash().catch((e) => toast(e.message || 'EMPTY FAILED'))}>
+              🗑 EMPTY TRASH
+            </button>
+          )}
         </div>
       </div>
 
-      {trash.length === 0 ? (
-        <div className="empty">TRASH IS EMPTY</div>
-      ) : (
-        <div className="masonry">
-          {trash.map((p) => (
-            <div key={p.id} className="photo-card" style={{ cursor: "default" }}>
-              {p.type === "video" ? (
-                <video src={p.src} muted playsInline preload="metadata" />
-              ) : (
-                <img src={p.src} alt={p.caption || ""} loading="lazy" />
-              )}
-              <span className="photo-album-tag">{p.originalAlbum || p.album || "UNSORTED"}</span>
-              <div style={{ padding: "8px 10px" }}>
-                {p.caption && <div style={{ fontSize: 11, color: "var(--txt)" }}>{p.caption}</div>}
-                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                  <button className="btn mini" onClick={() => v.restorePhoto(p.id)}>RESTORE</button>
-                  <button className="btn danger mini" onClick={() => v.deleteForever(p.id)}>DELETE</button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+      <div style={{ marginTop: 8, fontSize: 9, letterSpacing: '.18em', color: 'var(--dim)' }}>
+        RESTORE SENDS PHOTOS BACK TO THEIR ORIGINAL ALBUM (OR THE FIRST ALBUM IF IT WAS DELETED). PERMANENT DELETE PURGES THE FILE FROM STORAGE.
+      </div>
+
+      <div className="masonry" style={{ marginTop: 16 }}>
+        {state.trash.length ? (
+          state.trash.map((p) => <TrashCard key={p.id} photo={p} />)
+        ) : (
+          <div className="empty">TRASH IS EMPTY</div>
+        )}
+      </div>
+    </>
+  )
 }

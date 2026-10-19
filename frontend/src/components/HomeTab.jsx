@@ -1,105 +1,77 @@
-import { useVault } from "../VaultContext";
-import PhotoCard from "./PhotoCard";
+import { useVault } from '../VaultContext'
+import PhotoCard from './PhotoCard'
+import { formatBytes } from '../utils'
 
 export default function HomeTab() {
-  const v = useVault();
-  const {
-    photos, albums, albumFilter, setAlbumFilter, search, canModerate,
-    visibleCount, setVisibleCount, selectMode, selected, setSelected, toast,
-  } = v;
+  const { state, set, filteredPhotos, isGuest } = useVault()
 
-  const q = search.trim().toUpperCase();
-  let list = photos;
-  if (albumFilter !== "ALL") list = list.filter((p) => (p.album || "UNSORTED") === albumFilter);
-  if (q) {
-    list = list.filter(
-      (p) =>
-        (p.caption || "").toUpperCase().includes(q) ||
-        (p.album || "").toUpperCase().includes(q) ||
-        (p.uploadedBy || "").toUpperCase().includes(q)
-    );
-  }
+  const photos = filteredPhotos()
+  const totalBytes = state.photos.reduce((sum, p) => sum + (p.size || 0), 0)
 
-  const shown = list.slice(0, visibleCount);
-  const filterChips = ["ALL", ...albums.filter((a) => a !== "TRASH")];
-
-  function toggle(id) {
-    setSelected((s) => ({ ...s, [id]: !s[id] }));
-  }
-
-  async function bulkTrash() {
-    const ids = Object.keys(selected).filter((id) => selected[id]);
-    if (!ids.length) return toast("NOTHING SELECTED");
-    if (!window.confirm(`MOVE ${ids.length} PHOTOS TO TRASH?`)) return;
-    await v.trashPhotos(ids);
-    setSelected({});
-    v.setSelectMode(false);
-  }
+  const quick = [
+    { label: '📷 UPLOAD', action: () => !isGuest && set({ uploadOpen: true, uploadAlbum: state.albums[0] || '' }) },
+    { label: '🗂 VIEW ALBUMS', action: () => set({ tab: 'ALBUMS' }) },
+    { label: '👨‍👩‍👧 MEMBERS', action: () => set({ tab: 'MEMBERS' }) },
+    { label: '📋 BOARD', action: () => set({ tab: 'BOARD' }) },
+  ]
 
   return (
-    <div>
-      <div className="album-grid" style={{ marginBottom: 18 }}>
-        {filterChips.map((a) => (
-          <button
-            key={a}
-            className={`btn chip-album ${albumFilter === a ? "primary" : ""}`}
-            onClick={() => setAlbumFilter(a)}
-            style={{ height: 34 }}
-          >
-            {a}{" "}
-            <span style={{ opacity: 0.6 }}>
-              ({a === "ALL" ? photos.length : photos.filter((p) => (p.album || "UNSORTED") === a).length})
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {selectMode && (
-        <div
-          className="card"
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16, flexWrap: "wrap" }}
-        >
-          <span style={{ fontSize: 10, letterSpacing: ".18em", color: "var(--muted)" }}>
-            SELECT MODE — {Object.values(selected).filter(Boolean).length} SELECTED
-          </span>
-          <div style={{ display: "flex", gap: 8 }}>
-            {canModerate && (
-              <button className="btn danger mini" onClick={bulkTrash}>
-                MOVE TO TRASH
-              </button>
-            )}
-            <button
-              className="btn mini"
-              onClick={() =>
-                setSelected(Object.fromEntries(shown.map((p) => [p.id, true])))
-              }
-            >
-              SELECT ALL
-            </button>
-            <button className="btn mini" onClick={() => setSelected({})}>
-              CLEAR
-            </button>
+    <>
+      <section className="card">
+        <div style={{ fontSize: 11, letterSpacing: '.3em', color: 'var(--muted)', fontWeight: 700 }}>
+          FAMILY MEMORY VAULT
+        </div>
+        <div style={{ marginTop: 14 }} className="stat3 home-stats">
+          <div className="stat-box">
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{state.photos.length}</div>
+            <div className="stat-lbl">PHOTOS</div>
+          </div>
+          <div className="stat-box">
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{state.albums.length}</div>
+            <div className="stat-lbl">ALBUMS</div>
+          </div>
+          <div className="stat-box">
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{state.members.length}</div>
+            <div className="stat-lbl">MEMBERS</div>
+          </div>
+          <div className="stat-box">
+            <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--accent)' }}>{formatBytes(totalBytes)}</div>
+            <div className="stat-lbl">TOTAL STORAGE</div>
           </div>
         </div>
-      )}
 
-      {shown.length === 0 ? (
-        <div className="empty">NO PHOTOS YET — HIT + TO UPLOAD</div>
-      ) : (
-        <div className="masonry">
-          {shown.map((p) => (
-            <PhotoCard key={p.id} photo={p} selectMode={selectMode} selected={!!selected[p.id]} onToggle={() => toggle(p.id)} />
+        <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+          {quick.map((q) => (
+            <button
+              key={q.label}
+              className="btn"
+              onClick={q.action}
+              disabled={isGuest && q.label.includes('UPLOAD')}
+            >
+              {q.label}
+            </button>
           ))}
         </div>
-      )}
+      </section>
 
-      {list.length > visibleCount && (
-        <div style={{ textAlign: "center", marginTop: 20 }}>
-          <button className="btn" onClick={() => setVisibleCount((n) => n + 100)}>
-            SHOW MORE ({list.length - visibleCount} LEFT)
-          </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.25em', color: '#fff' }}>
+          RECENT MEMORIES
         </div>
-      )}
-    </div>
-  );
+        {state.photos.length > state.visibleLimit && (
+          <button className="btn mini" onClick={() => set({ visibleLimit: state.visibleLimit + 100 })}>
+            SHOW MORE ↓
+          </button>
+        )}
+      </div>
+
+      <div className="masonry">
+        {photos.length ? (
+          photos.slice(0, state.visibleLimit).map((p) => <PhotoCard key={p.id} photo={p} />)
+        ) : (
+          <div className="empty">NO PHOTOS YET — HIT + TO UPLOAD YOUR FIRST MEMORY</div>
+        )}
+      </div>
+    </>
+  )
 }

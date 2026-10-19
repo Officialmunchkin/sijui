@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/** An album name (the original app stored a plain string array). */
 class Album extends Model
 {
-    use HasFactory;
-
-    protected $fillable = ['name'];
+    protected $fillable = [
+        'name',
+        'created_by',
+    ];
 }

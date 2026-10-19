@@ -1,11 +1,7 @@
-export default function Toast({ toasts }) {
+export default function Toast({ msg }) {
   return (
-    <>
-      {toasts.map((t) => (
-        <div key={t.id} className="toast show">
-          {t.text}
-        </div>
-      ))}
-    </>
-  );
+    <div className={`toast ${msg ? 'show' : ''}`} role="status" aria-live="polite">
+      {msg || ''}
+    </div>
+  )
 }

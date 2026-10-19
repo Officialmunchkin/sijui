@@ -1,143 +1,91 @@
-// API client for the FAM VAULT Laravel backend.
-// Mirrors the R2 Worker API used by the original album.html.
-const API = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
+// Frontend talks ONLY to the Laravel API. No R2/Worker secrets ever reach
+// the browser — the backend proxies file bytes through the Worker.
+const BASE = (import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000') + '/api'
 
-export const fileURL = (key) => (key ? `${API}/file/${key}` : "");
+let TOKEN = localStorage.getItem('famvault_token') || ''
+export function setToken(t){ TOKEN = t || ''; if(t) localStorage.setItem('famvault_token', t); else localStorage.removeItem('famvault_token') }
+export function getToken(){ return TOKEN }
 
-async function j(res) {
-  if (!res.ok) {
-    let msg = "REQUEST FAILED";
-    try { msg = (await res.json()).error || msg; } catch {}
-    throw new Error(msg);
+function headers(json = false){
+  const h = {}
+  if(json) h['Content-Type'] = 'application/json'
+  if(TOKEN) h['Authorization'] = 'Bearer ' + TOKEN
+  return h
+}
+
+async function request(path, { method = 'GET', body, json = false, form = false } = {}){
+  // For FormData the browser sets Content-Type (multipart boundary) itself —
+  // setting it manually would corrupt the upload, so only send Authorization.
+  const opts = { method, headers: form ? (TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}) : headers(json) }
+  if(body !== undefined){
+    if(form){ opts.body = body }            // FormData — browser sets boundary
+    else { opts.body = JSON.stringify(body) }
   }
-  return res.json();
+  const res = await fetch(BASE + path, opts)
+  let data = null
+  try { data = await res.json() } catch { /* non-JSON */ }
+  if(!res.ok){
+    const msg = (data && (data.error || data.message)) || ('REQUEST FAILED (' + res.status + ')')
+    const err = new Error(msg); err.status = res.status; throw err
+  }
+  return data
 }
 
-/* ---- Auth ---- */
-export async function apiLogin(memberId, password) {
-  const res = await fetch(`${API}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ memberId, password }),
-  });
-  return j(res);
+/* ---------------------------------------------------------- AUTH */
+export const apiLogin = (memberId, password) => request('/auth/login', { method:'POST', json:true, body:{ memberId, password } })
+export const apiGuest = () => request('/auth/guest', { method:'POST' })
+export const apiMe = () => request('/auth/me')
+export const apiLogout = () => request('/auth/logout', { method:'POST' })
+
+/* -------------------------------------------------------- MEMBERS */
+export const apiMembers = () => request('/members')
+export const apiCreateMember = (m) => request('/members', { method:'POST', json:true, body:m })
+export const apiUpdateMember = (id, m) => request('/members/' + encodeURIComponent(id), { method:'PUT', json:true, body:m })
+export const apiDeleteMember = (id) => request('/members/' + encodeURIComponent(id), { method:'DELETE' })
+export const apiResetPassword = (id, password) => request('/members/' + encodeURIComponent(id) + '/password', { method:'POST', json:true, body:{ password } })
+
+/* --------------------------------------------------------- ALBUMS */
+export const apiAlbums = () => request('/albums')
+export const apiCreateAlbum = (name) => request('/albums', { method:'POST', json:true, body:{ name } })
+export const apiRenameAlbum = (name, newName) => request('/albums/' + encodeURIComponent(name), { method:'PUT', json:true, body:{ name: newName } })
+export const apiDeleteAlbum = (name) => request('/albums/' + encodeURIComponent(name), { method:'DELETE' })
+
+/* ---------------------------------------------------------- PHOTOS */
+export const apiPhotos = (album) => request('/photos' + (album && album !== 'ALL' ? ('?album=' + encodeURIComponent(album)) : ''))
+export const apiTrash = () => request('/photos/trash')
+export const apiUploadPhoto = (formData) => request('/photos/upload', { method:'POST', form:true, body:formData })
+export const apiTrashPhotos = (ids) => request('/photos/trash', { method:'POST', json:true, body:{ ids, action:'trash' } })
+export const apiRestorePhotos = (ids) => request('/photos/trash', { method:'POST', json:true, body:{ ids, action:'restore' } })
+export const apiMovePhotos = (ids, album) => request('/photos/move', { method:'POST', json:true, body:{ ids, album } })
+export const apiDeletePhoto = (id) => request('/photos/' + encodeURIComponent(id), { method:'DELETE' })
+export const apiEmptyTrash = () => request('/photos/trash/empty', { method:'DELETE' })
+
+/* Build a same-origin URL for a photo's bytes (backend proxies the Worker). */
+export function fileURL(key){
+  if(!key) return ''
+  const enc = key.split('/').map(encodeURIComponent).join('/')
+  return BASE + '/photos/file/' + enc
 }
 
-export async function apiGuest() {
-  const res = await fetch(`${API}/guest`, { method: "POST" });
-  return j(res);
+/* Download a photo's bytes and save via a temporary anchor. */
+export async function downloadPhoto(p){
+  const url = p.src || fileURL(p.key)
+  try{
+    const res = await fetch(url, { headers: TOKEN ? { 'Authorization':'Bearer ' + TOKEN } : {} })
+    if(!res.ok) throw new Error('DOWNLOAD FAILED')
+    const blob = await res.blob()
+    const a = document.createElement('a')
+    const u = URL.createObjectURL(blob)
+    a.href = u; a.download = p.fileName || (p.id + '.jpg')
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(u), 1000)
+  }catch(e){
+    window.open(url, '_blank')
+  }
 }
 
-/* ---- Members ---- */
-export async function apiListMembers() {
-  const res = await fetch(`${API}/members`);
-  return j(res); // { members, passwords }
-}
-export async function apiCreateMember(form) {
-  const res = await fetch(`${API}/members`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(form),
-  });
-  return j(res);
-}
-export async function apiUpdateMember(id, form) {
-  const res = await fetch(`${API}/members/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(form),
-  });
-  return j(res);
-}
-export async function apiDeleteMember(id) {
-  const res = await fetch(`${API}/members/${encodeURIComponent(id)}`, { method: "DELETE" });
-  return j(res);
-}
-export async function apiSetPassword(id, password) {
-  const res = await fetch(`${API}/members/${encodeURIComponent(id)}/password`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
-  });
-  return j(res);
-}
-
-/* ---- Albums ---- */
-export async function apiListAlbums() {
-  const res = await fetch(`${API}/albums`);
-  return j(res); // { albums }
-}
-export async function apiCreateAlbum(name) {
-  const res = await fetch(`${API}/albums`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-  return j(res);
-}
-export async function apiRenameAlbum(oldName, newName) {
-  const res = await fetch(`${API}/albums/${encodeURIComponent(oldName)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: newName }),
-  });
-  return j(res);
-}
-export async function apiDeleteAlbum(name) {
-  const res = await fetch(`${API}/albums/${encodeURIComponent(name)}`, { method: "DELETE" });
-  return j(res);
-}
-
-/* ---- Photos ---- */
-export async function apiListPhotos() {
-  const res = await fetch(`${API}/photos`);
-  return j(res); // { photos }
-}
-export async function apiListTrash() {
-  const res = await fetch(`${API}/photos/trash`);
-  return j(res); // { photos }
-}
-export async function apiUpload(file, caption, album, uploadedBy, taggedIds) {
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("caption", caption);
-  fd.append("album", album);
-  fd.append("uploadedBy", uploadedBy);
-  fd.append("tagged", (taggedIds || []).join(","));
-  const res = await fetch(`${API}/upload`, { method: "POST", body: fd });
-  return j(res);
-}
-export async function apiDeletePhoto(id) {
-  const res = await fetch(`${API}/photos/${encodeURIComponent(id)}`, { method: "DELETE" });
-  return j(res);
-}
-export async function apiTrashAction(ids, action) {
-  const res = await fetch(`${API}/photos/trash`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ids, action }),
-  });
-  return j(res);
-}
-export async function apiUpdateAlbum(from, to) {
-  const res = await fetch(`${API}/photos/update-album`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to }),
-  });
-  return j(res);
-}
-
-/* ---- Board ---- */
-export async function apiListBoard() {
-  const res = await fetch(`${API}/board`);
-  return j(res); // { posts }
-}
-export async function apiSaveBoard(posts) {
-  const res = await fetch(`${API}/board`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ posts }),
-  });
-  return j(res);
-}
+/* ---------------------------------------------------------- BOARD */
+export const apiBoard = () => request('/board')
+export const apiPostBoard = (text) => request('/board', { method:'POST', json:true, body:{ text } })
+export const apiUpdateBoard = (id, text) => request('/board/' + id, { method:'PUT', json:true, body:{ text } })
+export const apiDeleteBoard = (id) => request('/board/' + id, { method:'DELETE' })

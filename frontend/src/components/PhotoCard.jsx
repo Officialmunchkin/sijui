@@ -1,50 +1,72 @@
-import { useVault } from "../VaultContext";
+import { fileURL } from '../api'
+import { formatBytes } from '../utils'
+import { useVault } from '../VaultContext'
 
-export default function PhotoCard({ photo, selectMode, selected, onToggle }) {
-  const v = useVault();
-  const p = photo;
+export default function PhotoCard({ photo }) {
+  const { state, set, isGuest, toast } = useVault()
 
-  function open() {
-    if (selectMode) return onToggle();
-    v.setLightbox(p);
+  const selected = state.selected.includes(photo.id)
+
+  const activate = () => {
+    if (state.selectMode) {
+      if (isGuest) return toast('GUESTS CANNOT SELECT')
+      set({
+        selected: selected
+          ? state.selected.filter((id) => id !== photo.id)
+          : [...state.selected, photo.id],
+      })
+    } else {
+      set({ lightbox: photo })
+    }
   }
 
+  const onKey = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate() }
+    if (e.key === 'Escape' && state.selectMode) set({ selectMode: false, selected: [] })
+  }
+
+  const src = photo.src || fileURL(photo.key)
+  const isVideo = photo.type === 'video'
+
   return (
-    <div
+    <figure
       className="photo-card"
-      onClick={open}
-      style={selected ? { borderColor: "var(--accent)", boxShadow: "0 0 22px rgba(139,92,246,.5)" } : undefined}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open photo ${photo.caption || photo.id}`}
+      onClick={activate}
+      onKeyDown={onKey}
+      style={state.selectMode ? { borderColor: selected ? 'var(--accent)' : 'var(--line)', boxShadow: selected ? '0 0 20px rgba(139,92,246,.5)' : 'none' } : undefined}
     >
-      {p.type === "video" ? (
-        <video src={p.src} muted playsInline preload="metadata" />
+      {isVideo ? (
+        <video src={src} muted preload="metadata" />
       ) : (
-        <img src={p.src} alt={p.caption || ""} loading="lazy" />
+        <img src={src} alt={photo.caption || 'Family memory'} loading="lazy" />
       )}
 
-      <span className="photo-album-tag">{p.album || "UNSORTED"}</span>
-      {p.likes > 0 && <span className="photo-like">♥ {p.likes}</span>}
-      {selectMode && (
+      <span className="photo-album-tag">{photo.album}</span>
+      <span className="photo-like">♥️ {photo.likes || 0}</span>
+
+      {state.selectMode && (
         <span
+          className="dot"
           style={{
-            position: "absolute", bottom: 10, right: 10, width: 24, height: 24,
-            borderRadius: "50%", border: "2px solid #fff",
-            background: selected ? "var(--accent)" : "rgba(8,8,15,.6)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontSize: 13, fontWeight: 800,
+            position: 'absolute', bottom: 10, right: 10, width: 16, height: 16,
+            background: selected ? 'var(--accent)' : 'transparent',
+            border: selected ? 'none' : '2px solid var(--line)',
+            boxShadow: selected ? '0 0 10px var(--accent)' : 'none',
           }}
-        >
-          {selected ? "✓" : ""}
-        </span>
+        />
       )}
 
-      {(p.caption || p.uploadedBy) && (
-        <div style={{ padding: "8px 10px" }}>
-          {p.caption && (
-            <div style={{ fontSize: 11, color: "var(--txt)", letterSpacing: ".04em" }}>{p.caption}</div>
-          )}
-          {p.uploadedBy && <div className="photo-byline">BY @{p.uploadedBy}</div>}
+      <figcaption style={{ padding: '10px 12px' }}>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.14em', color: '#fff', wordBreak: 'break-word' }}>
+          {photo.caption || 'UNTITLED'}
         </div>
-      )}
-    </div>
-  );
+        <div className="photo-byline">
+          {(photo.uploadedBy || '').toUpperCase()} • {photo.date || ''} {photo.size ? `• ${formatBytes(photo.size)}` : ''}
+        </div>
+      </figcaption>
+    </figure>
+  )
 }
