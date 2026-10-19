@@ -31,37 +31,52 @@ Route::get('/health', fn () => response()->json([
 
 // ------------------------------------------------- TEMP DIAG (remove me)
 Route::get('/_diag', function (\Illuminate\Http\Request $request) {
-    abort_unless(hash_equals('diag-7f3a91c2b6', (string) $request->query('k')), 404);
-
-    $m = \App\Models\Member::query()->find('herman');
-    $raw = $m?->password_secret;
-    $key = (string) config('app.key');
-
-    $out = [
-        'env' => config('app.env'),
-        'debug' => config('app.debug'),
-        'cipher' => config('app.cipher'),
-        'raw_type' => gettype($raw),
-        'raw_len' => is_string($raw) ? strlen($raw) : null,
-        'raw_md5' => is_string($raw) ? md5($raw) : null,
-        'raw_head' => is_string($raw) ? substr($raw, 0, 12) : null,
-        'key_len' => strlen($key),
-        'key_prefix' => substr($key, 0, 7),
-        'key_md5' => md5($key),
-        'prev_keys' => config('app.previous_keys'),
-    ];
+    register_shutdown_function(function () {
+        $e = error_get_last();
+        if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+            fwrite(STDERR, 'FAMVAULT_DIAG_FATAL '.json_encode($e)."\n");
+        }
+    });
 
     try {
-        $d = \Illuminate\Support\Facades\Crypt::decryptString((string) $raw);
-        $out['dec_ok'] = true;
-        $out['dec_len'] = strlen($d);
-        $out['dec_md5'] = md5($d);
-    } catch (\Throwable $e) {
-        $out['dec_ok'] = false;
-        $out['exc'] = get_class($e).' :: '.$e->getMessage();
-    }
+        $out = ['step' => 'boot'];
+        $out['k_ok'] = hash_equals('diag-7f3a91c2b6', (string) $request->query('k'));
+        $out['env'] = config('app.env');
+        $out['debug'] = config('app.debug');
+        $out['cipher'] = config('app.cipher');
+        $out['key_len'] = strlen((string) config('app.key'));
+        $out['key_md5'] = md5((string) config('app.key'));
+        $out['key_head'] = substr((string) config('app.key'), 0, 7);
+        $out['prev_keys_type'] = gettype(config('app.previous_keys'));
 
-    return response()->json($out);
+        $out['step'] = 'query';
+        $m = \App\Models\Member::query()->find('herman');
+        $out['found'] = $m !== null;
+        $raw = $m ? $m->password_secret : null;
+        $out['raw_type'] = gettype($raw);
+        $out['raw_len'] = is_string($raw) ? strlen($raw) : null;
+        $out['raw_md5'] = is_string($raw) ? md5($raw) : null;
+        $out['raw_head'] = is_string($raw) ? substr($raw, 0, 12) : null;
+
+        $out['step'] = 'decrypt';
+        try {
+            $d = \Illuminate\Support\Facades\Crypt::decryptString((string) $raw);
+            $out['dec_ok'] = true;
+            $out['dec_len'] = strlen((string) $d);
+            $out['dec_md5'] = md5((string) $d);
+        } catch (\Throwable $e) {
+            $out['dec_ok'] = false;
+            $out['dec_exc'] = get_class($e).' :: '.$e->getMessage();
+        }
+
+        return response()->json($out);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'outer_exc' => get_class($e).' :: '.$e->getMessage(),
+            'at' => $e->getFile().':'.$e->getLine(),
+            'trace' => array_slice(explode("\n", $e->getTraceAsString()), 0, 8),
+        ], 200);
+    }
 });
 
 // ---------------------------------------------------------------- AUTH
