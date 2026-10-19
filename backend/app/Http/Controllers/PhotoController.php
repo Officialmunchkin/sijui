@@ -304,7 +304,7 @@ class PhotoController extends Controller
         }
 
         $headers = [
-            'Content-Type' => $res->header('Content-Type')[0] ?? 'application/octet-stream',
+            'Content-Type' => $res->header('Content-Type') ?: 'application/octet-stream',
             'Cache-Control' => 'public, max-age=31536000, immutable',
         ];
 

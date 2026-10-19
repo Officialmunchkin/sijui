@@ -79,6 +79,15 @@ RUN composer install \
 # ---------------------------------------------------------------- application
 COPY . .
 
+# ------------------------------------------------- patch tursodatabase driver
+# v1.3.1's read path (LibSQLPDOStatement::decodeDoubleBase64) base64-decodes
+# TWICE any SELECT value that merely looks like base64. Crypt::encryptString()
+# output is base64, so members.password_secret came back as binary and the
+# admin password viewer returned null. The script is self-verifying: it exits
+# non-zero (failing the build) if upstream changes so this never silently
+# regresses. See docker/patches/patch-libsql-driver.php.
+RUN php docker/patches/patch-libsql-driver.php
+
 RUN composer dump-autoload --no-dev --optimize --no-scripts --no-interaction \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache \
