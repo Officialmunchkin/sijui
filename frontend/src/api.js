@@ -43,6 +43,8 @@ export const apiCreateMember = (m) => request('/members', { method:'POST', json:
 export const apiUpdateMember = (id, m) => request('/members/' + encodeURIComponent(id), { method:'PUT', json:true, body:m })
 export const apiDeleteMember = (id) => request('/members/' + encodeURIComponent(id), { method:'DELETE' })
 export const apiResetPassword = (id, password) => request('/members/' + encodeURIComponent(id) + '/password', { method:'POST', json:true, body:{ password } })
+/* Admin-only: view every member's (decrypted) password. */
+export const apiViewPasswords = () => request('/members/passwords')
 
 /* --------------------------------------------------------- ALBUMS */
 export const apiAlbums = () => request('/albums')
@@ -82,6 +84,13 @@ export async function downloadPhoto(p){
   }catch(e){
     window.open(url, '_blank')
   }
+}
+
+/* Fetch a photo's raw bytes (authenticated) — used to build album ZIPs. */
+export async function fetchPhotoBytes(key){
+  const res = await fetch(fileURL(key), { headers: TOKEN ? { 'Authorization':'Bearer ' + TOKEN } : {} })
+  if(!res.ok) throw new Error('FETCH FAILED')
+  return new Uint8Array(await res.arrayBuffer())
 }
 
 /* ---------------------------------------------------------- BOARD */

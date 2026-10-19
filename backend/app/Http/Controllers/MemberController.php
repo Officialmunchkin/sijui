@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Member;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class MemberController extends Controller
@@ -74,8 +73,13 @@ class MemberController extends Controller
             'initial' => strtoupper($data['initial'] ?? mb_substr($data['name'], 0, 1)),
             'is_admin' => (bool) ($data['isAdmin'] ?? false),
             'is_guest' => (bool) ($data['isGuest'] ?? false),
-            'password_hash' => isset($data['password']) ? Hash::make($data['password']) : null,
+            'password_hash' => null,
         ]);
+
+        if (! empty($data['password'])) {
+            $member->setPassword($data['password']);
+            $member->save();
+        }
 
         return response()->json(['ok' => true, 'member' => $member->toClientArray()], 201);
     }
@@ -173,9 +177,39 @@ class MemberController extends Controller
             'password' => 'required|string|min:2|max:128',
         ]);
 
-        $member->update(['password_hash' => Hash::make($data['password'])]);
+        $member->setPassword($data['password']);
+        $member->save();
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * GET /api/members/passwords — ADMIN ONLY.
+     *
+     * Returns each member's viewable (decrypted) password so herman can see
+     * the whole family's logins from the ADMIN tab. Guests excluded.
+     */
+    public function passwords(Request $request): JsonResponse
+    {
+        if ($err = $this->denyNonAdmin($request)) {
+            return $err;
+        }
+
+        $order = ['jermaine', 'lucy', 'faith', 'herman', 'hossam', 'amber'];
+
+        $list = Member::query()
+            ->where('is_guest', false)
+            ->get()
+            ->sortBy(fn (Member $m) => array_search($m->id, $order) === false ? PHP_INT_MAX : array_search($m->id, $order))
+            ->map(fn (Member $m) => [
+                'id' => $m->id,
+                'name' => $m->name,
+                'hasPassword' => (bool) $m->password_hash,
+                'password' => $m->viewablePassword(),
+            ])
+            ->values();
+
+        return response()->json(['passwords' => $list]);
     }
 
     private function denyNonAdmin(Request $request): ?JsonResponse

@@ -44,6 +44,13 @@ Route::prefix('auth')->group(function () {
 // ---------------------------------------------------------------- MEMBERS
 // The member grid is visible before login (same as the original app).
 Route::get('/members', [MemberController::class, 'index']);
+
+// Admin-only password viewer. Registered BEFORE /members/{id} so the literal
+// "passwords" path isn't captured as an {id}. The admin check lives in the
+// controller (denyNonAdmin).
+Route::get('/members/passwords', [MemberController::class, 'passwords'])
+    ->middleware('auth.famvault');
+
 Route::get('/members/{id}', [MemberController::class, 'show']);
 
 Route::middleware('auth.famvault')->group(function () {
@@ -66,12 +73,13 @@ Route::middleware('auth.famvault')->group(function () {
 
 // ---------------------------------------------------------------- PHOTOS
 // Listing + file bytes are readable by guests; uploads/mutations require a
-// member session (mirrors the Worker's own X-Famvault-Role gate).
+// member session (mirrors the Worker's own X-Famvault-Role gate). The trash
+// LIST is admin-only (checked in PhotoController::trash).
 Route::get('/photos', [PhotoController::class, 'index']);
-Route::get('/photos/trash', [PhotoController::class, 'trash']);
 Route::get('/photos/file/{key}', [PhotoController::class, 'file'])->where('key', '.*');
 
 Route::middleware('auth.famvault')->group(function () {
+    Route::get('/photos/trash', [PhotoController::class, 'trash']);           // admin-only
     Route::post('/photos/upload', [PhotoController::class, 'upload']);
     Route::post('/photos/trash', [PhotoController::class, 'updateTrash']);   // { ids, action: trash|restore }
     Route::post('/photos/move', [PhotoController::class, 'move']);           // { ids, album }

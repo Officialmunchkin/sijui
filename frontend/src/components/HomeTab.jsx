@@ -41,12 +41,13 @@ export default function HomeTab() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-          {quick.map((q) => (
+          {quick
+            .filter((q) => !(isGuest && q.label.includes('UPLOAD')))
+            .map((q) => (
             <button
               key={q.label}
               className="btn"
               onClick={q.action}
-              disabled={isGuest && q.label.includes('UPLOAD')}
             >
               {q.label}
             </button>

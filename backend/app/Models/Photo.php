@@ -30,6 +30,7 @@ class Photo extends Model
         'file_name',
         'trashed',
         'original_album',
+        'deleted_by',
         'trashed_at',
     ];
 

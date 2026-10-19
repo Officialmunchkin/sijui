@@ -16,7 +16,7 @@ import RenameAlbumModal from './components/RenameAlbumModal'
 import Toast from './components/Toast'
 
 export default function App() {
-  const { state, set, isGuest } = useVault()
+  const { state, set, isGuest, isAdmin } = useVault()
 
   if (!state.booted) {
     return (
@@ -32,8 +32,8 @@ export default function App() {
   if (!state.me) return <LoginScreen />
 
   const tabs = ['HOME', 'ALBUMS', 'MEMBERS', 'BOARD']
-  if (!isGuest) tabs.push('ADMIN')
-  if (!isGuest) tabs.push('TRASH')
+  if (isAdmin) tabs.push('ADMIN')
+  if (isAdmin) tabs.push('TRASH')
 
   return (
     <div className="app">
@@ -52,8 +52,8 @@ export default function App() {
         {state.tab === 'ALBUMS' && <AlbumsTab />}
         {state.tab === 'MEMBERS' && <MembersTab />}
         {state.tab === 'BOARD' && <BoardTab />}
-        {state.tab === 'ADMIN' && !isGuest && <AdminTab />}
-        {state.tab === 'TRASH' && !isGuest && <TrashTab />}
+        {state.tab === 'ADMIN' && isAdmin && <AdminTab />}
+        {state.tab === 'TRASH' && isAdmin && <TrashTab />}
       </div>
 
       {!isGuest && !state.selectMode && (

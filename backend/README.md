@@ -36,16 +36,17 @@ Vite frontend on :5173.
 | PUT | `/api/members/{id}` | admin/self | admin edits all; self edits bio only |
 | DELETE | `/api/members/{id}` | admin | cannot delete `herman` |
 | POST | `/api/members/{id}/password` | admin | set/reset a member password |
+| GET | `/api/members/passwords` | admin | every member's password, decrypted (admin-only "view all") |
 | GET | `/api/albums` | – | album name list |
-| POST | `/api/albums` | admin | create album |
+| POST | `/api/albums` | admin | create album (first album is the default/fallback) |
 | PUT | `/api/albums/{id}` | admin | rename (Worker `{from,to}` sync) |
-| DELETE | `/api/albums/{id}` | admin | photos fall back to `UNSORTED` |
+| DELETE | `/api/albums/{id}` | member | photos go **straight to TRASH** (stamped with `deleted_by`) |
 | GET | `/api/photos` | – | proxied from Worker `/photos` (trashed hidden) |
-| GET | `/api/photos/trash` | – | trash list |
+| GET | `/api/photos/trash` | admin | trash list (admins only) |
 | POST | `/api/photos/upload` | member | multipart → Worker `/upload` (guests rejected, 200MB cap) |
-| POST | `/api/photos/trash` | member | `{ ids, action: trash\|restore }` |
+| POST | `/api/photos/trash` | member | `{ ids, action: trash\|restore }` (any non-guest may trash) |
 | POST | `/api/photos/update-album` | admin | `{ from, to }` |
-| DELETE | `/api/photos/{id}` | member | permanent delete via Worker |
+| DELETE | `/api/photos/{id}` | admin | permanent delete via Worker (purges R2) |
 | GET | `/api/photos/file/{key}` | – | same-origin proxy to Worker `/file/<key>` |
 | GET | `/api/board` | – | family board posts |
 | POST | `/api/board` | member | `{ text }` (guests rejected) |
@@ -81,8 +82,9 @@ session, so the Worker gate stays authoritative.
 
 ## Data model
 
-- `members` — the 6 seeded family members (+ any added later); passwords are
-  bcrypt hashes (upgrade over the original plain-localStorage storage).
+- `members` — the 6 seeded family members (+ any added later); the login source
+  of truth is a bcrypt hash, and an AES-encrypted copy (`password_secret`) backs
+  the admin-only "view all passwords" panel.
 - `albums` — album names (`SUMMER 24`, `XMAS 23`, `BIRTHDAYS`, `WEEKENDS`,
   `FAMILY BBQ`, `ARCHIVE`).
 - `photos` — metadata mirror; the only locally-owned state is **trash**

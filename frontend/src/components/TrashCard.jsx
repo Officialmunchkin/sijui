@@ -1,5 +1,5 @@
 import { fileURL } from '../api'
-import { formatBytes } from '../utils'
+import { formatBytes, timeAgo } from '../utils'
 import { useVault } from '../VaultContext'
 
 export default function TrashCard({ photo }) {
@@ -55,6 +55,10 @@ export default function TrashCard({ photo }) {
         </div>
         <div className="photo-byline">
           {(photo.uploadedBy || '').toUpperCase()} {photo.size ? `• ${formatBytes(photo.size)}` : ''}
+        </div>
+        <div style={{ marginTop: 4, fontSize: 9, letterSpacing: '.14em', color: 'var(--dim)' }}>
+          {photo.deletedBy ? `DELETED BY ${String(photo.deletedBy).toUpperCase()}` : 'DELETED'}
+          {photo.trashedAt ? ` • ${timeAgo(photo.trashedAt)}` : ''}
         </div>
         <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
           <button

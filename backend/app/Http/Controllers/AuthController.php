@@ -6,6 +6,7 @@ use App\Models\ApiSession;
 use App\Models\Member;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -36,9 +37,14 @@ class AuthController extends Controller
 
         if (! $member->password_hash) {
             // First login sets the password (original behaviour).
-            $member->update(['password_hash' => Hash::make($data['password'])]);
+            $member->setPassword($data['password']);
+            $member->save();
         } elseif (! Hash::check($data['password'], $member->password_hash)) {
             return response()->json(['error' => 'WRONG PASSWORD • TRY AGAIN'], 401);
+        } elseif (! $member->password_secret) {
+            // Backfill the viewable secret for hashes stored before it existed.
+            $member->password_secret = Crypt::encryptString($data['password']);
+            $member->save();
         }
 
         $session = ApiSession::issue($member);
@@ -132,7 +138,8 @@ class AuthController extends Controller
             return response()->json(['error' => 'WRONG PASSWORD • TRY AGAIN'], 401);
         }
 
-        $member->update(['password_hash' => Hash::make($data['password'])]);
+        $member->setPassword($data['password']);
+        $member->save();
 
         return response()->json(['ok' => true]);
     }

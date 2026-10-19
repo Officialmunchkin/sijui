@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useReducer, useRef } from 'react'
 import * as api from './api'
-import { colorFor, slugId } from './utils'
+import { colorFor, slugId, zipStore } from './utils'
 
 const Ctx = createContext(null)
 export const useVault = () => useContext(Ctx)
@@ -36,6 +36,7 @@ const initial = {
   renameAlbumId: null, renameAlbumName: '',
   bioEditId: null, bioDraft: '',
   adminPwDrafts: {},
+  adminPasswords: null,      // admin-only decrypted password list (lazy loaded)
   toast: null,
   visibleLimit: 100,
 }
@@ -68,7 +69,9 @@ export function VaultProvider({ children }){
     set({ members: m.members || [], albums: a.albums || [] })
   }
   async function loadPhotos(){
-    const [p, t] = await Promise.all([api.apiPhotos(), api.apiTrash()])
+    const p = await api.apiPhotos()
+    // Trash is admin-only now; non-admins get a 403 which we swallow to [].
+    const t = await api.apiTrash().catch(() => ({ photos: [] }))
     set({ photos: p.photos || [], trash: t.photos || [] })
   }
   async function loadBoard(){
@@ -101,7 +104,9 @@ export function VaultProvider({ children }){
       const r = await api.apiLogin(id, pw)
       api.setToken(r.token)
       set({ me:r.member, pendingId:null, pwInput:'', pwError:'' })
-      await Promise.all([loadPhotos(), loadBoard()])
+      // Reload members too: a first login sets the password, so hasPassword
+      // (and the admin SET counter) must reflect the fresh state.
+      await Promise.all([loadPhotos(), loadBoard(), loadMembersAlbums()])
     }catch(e){
       set({ pwError: e.message || 'LOGIN FAILED' })
     }
@@ -140,7 +145,7 @@ export function VaultProvider({ children }){
   }
   async function deleteAlbum(name){
     const count = state.photos.filter(p => p.album === name).length
-    if(!confirm(`DELETE ALBUM "${name}"? ALL ${count} PHOTOS WILL GO TO TRASH`)) return
+    if(!confirm(`DELETE ALBUM ${name}? ALL ${count} PHOTOS WILL GO TO TRASH`)) return
     await api.apiDeleteAlbum(name)
     await Promise.all([loadMembersAlbums(), loadPhotos()])
     if(state.albumFilter === name) set({ albumFilter:'ALL' })
@@ -197,7 +202,9 @@ export function VaultProvider({ children }){
     toast('PERMANENTLY DELETED')
   }
   async function emptyTrash(){
-    if(!confirm('EMPTY TRASH? ALL ITEMS WILL BE PERMANENTLY DELETED.')) return
+    const n = state.trash.length
+    if(!n){ toast('TRASH IS EMPTY'); return }
+    if(!confirm(`EMPTY TRASH? ${n} ${n === 1 ? 'ITEM' : 'ITEMS'} WILL BE PERMANENTLY DELETED.`)) return
     await api.apiEmptyTrash()
     await loadPhotos()
     toast('TRASH EMPTIED')
@@ -244,6 +251,35 @@ export function VaultProvider({ children }){
     toast('BIO SAVED')
   }
 
+  // ---- admin: view passwords + download album as zip ----
+  async function viewPasswords(){
+    const r = await api.apiViewPasswords()
+    set({ adminPasswords: r.passwords || [] })
+  }
+  async function downloadAlbumZip(album){
+    const list = state.photos.filter(p => p.album === album)
+    if(!list.length){ toast('NO PHOTOS IN ' + album); return }
+    toast(`ZIPPING ${list.length} FILES…`)
+    const files = []
+    for(const p of list){
+      try{
+        const data = await api.fetchPhotoBytes(p.key)
+        const fallbackExt = p.type === 'video' ? '.mp4' : '.jpg'
+        const name = p.fileName || (p.id + fallbackExt)
+        files.push({ name, data })
+      }catch(e){ /* skip unreadable file */ }
+    }
+    if(!files.length){ toast('NO DOWNLOADABLE FILES'); return }
+    const blob = zipStore(files)
+    const a = document.createElement('a')
+    const u = URL.createObjectURL(blob)
+    a.href = u
+    a.download = String(album).replace(/[^a-z0-9]+/gi, '_') + '.zip'
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(u), 1000)
+    toast(`DOWNLOADED ${album}.ZIP`)
+  }
+
   // ---- board actions ----
   async function postBoard(text){
     if(!text.trim()) return
@@ -261,10 +297,12 @@ export function VaultProvider({ children }){
   }
 
   // ---- selectors ----
-  const isAdmin = !!state.me && !state.me.isGuest && state.me.isAdmin
-  const isHerman = !!state.me && state.me.id === 'herman'
-  const isGuest = !!state.me && state.me.isGuest
-  const canSeeTrash = isAdmin || isHerman
+  const id = state.me?.id || ''
+  const isGuest = !!id && id.startsWith('guest_')
+  const isAdmin = id === 'herman'
+  const isMember = !!id && !isGuest && !isAdmin
+  const isHerman = isAdmin
+  const canSeeTrash = isAdmin
 
   function filteredPhotos(){
     let list = state.photos
@@ -279,12 +317,13 @@ export function VaultProvider({ children }){
   const value = {
     state, set, toast,
     TABS,
-    isAdmin, isHerman, isGuest, canSeeTrash,
+    isAdmin, isHerman, isGuest, isMember, canSeeTrash,
     loadMembersAlbums, loadPhotos, loadBoard,
     submitLogin, continueAsGuest, logout,
     createAlbum, renameAlbum, deleteAlbum,
     startUpload, trashPhotos, restorePhotos, movePhotos, deletePhotoForever, emptyTrash,
     saveNewMember, saveEditMember, removeMember, adminSetPassword, saveBio,
+    viewPasswords, downloadAlbumZip,
     postBoard, editBoardPost, deleteBoardPost,
     filteredPhotos,
     blankMember,

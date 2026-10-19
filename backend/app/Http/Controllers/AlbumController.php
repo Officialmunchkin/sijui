@@ -87,19 +87,20 @@ class AlbumController extends Controller
     }
 
     /**
-     * DELETE /api/albums/{name} — admin only.
+     * DELETE /api/albums/{name} — members + admin (guests rejected).
      *
      * Deleting an album sends its photos STRAIGHT TO TRASH (not UNSORTED):
-     * each photo records original_album + trashed_at so RESTORE can put it
-     * back if the album returns. TRASH itself can never be deleted.
+     * each photo records original_album + deleted_by + trashed_at so the
+     * admin's TRASH view and activity log can show who removed it and RESTORE
+     * can put it back if the album returns. TRASH itself can never be deleted.
      */
     public function destroy(Request $request, string $name): JsonResponse
     {
         /** @var Member $actor */
         $actor = $request->attributes->get('famvault_member');
 
-        if (! $actor->is_admin) {
-            return response()->json(['error' => 'ADMIN ONLY'], 403);
+        if ($actor->is_guest) {
+            return response()->json(['error' => 'GUESTS CANNOT DELETE ALBUMS'], 403);
         }
 
         $album = Album::query()->where('name', $name)->first();
@@ -119,6 +120,7 @@ class AlbumController extends Controller
             ->update([
                 'trashed' => true,
                 'original_album' => $name,
+                'deleted_by' => $actor->id,
                 'trashed_at' => now(),
             ]);
 

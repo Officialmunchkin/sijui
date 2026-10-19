@@ -46,15 +46,27 @@ class PhotoController extends Controller
         return response()->json(['photos' => $photos]);
     }
 
-    /** GET /api/photos/trash — trashed items (newest trashed first). */
-    public function trash(): JsonResponse
+    /**
+     * GET /api/photos/trash — ADMIN ONLY. Trashed items (newest trashed
+     * first) with the metadata the ADMIN/TRASH view needs: originalAlbum,
+     * deletedBy, trashedAt, size.
+     */
+    public function trash(Request $request): JsonResponse
     {
+        /** @var Member $actor */
+        $actor = $request->attributes->get('famvault_member');
+
+        if (! $actor || $actor->is_guest || ! $actor->is_admin) {
+            return response()->json(['error' => 'ADMIN ONLY'], 403);
+        }
+
         $items = Photo::query()
             ->where('trashed', true)
             ->orderByDesc('trashed_at')
             ->get()
             ->map(fn (Photo $p) => $p->toClientArray() + [
                 'originalAlbum' => $p->original_album,
+                'deletedBy' => $p->deleted_by,
                 'trashedAt' => $p->trashed_at?->getTimestamp() * 1000,
             ]);
 
@@ -166,12 +178,11 @@ class PhotoController extends Controller
 
         Photo::query()->whereIn('id', $ids)->get()->each(function (Photo $p) use ($actor, $data, $fallback) {
             if ($data['action'] === 'trash') {
-                if (! $actor->is_admin && $p->uploaded_by !== $actor->id) {
-                    return; // only admin or uploader may trash
-                }
+                // Any member may trash a photo; it records who did it.
                 $p->update([
                     'trashed' => true,
                     'original_album' => $p->album,
+                    'deleted_by' => $actor->id,
                     'trashed_at' => now(),
                 ]);
             } else {
@@ -182,6 +193,7 @@ class PhotoController extends Controller
                     'trashed' => false,
                     'album' => $dest,
                     'original_album' => null,
+                    'deleted_by' => null,
                     'trashed_at' => null,
                 ]);
             }
@@ -231,11 +243,11 @@ class PhotoController extends Controller
             return response()->json(['error' => 'GUESTS CANNOT DELETE'], 403);
         }
 
-        $local = Photo::query()->find($id);
-
-        if ($local && ! $actor->is_admin && $local->uploaded_by !== $actor->id) {
-            return response()->json(['error' => 'ONLY ADMIN OR UPLOADER CAN DELETE'], 403);
+        if (! $actor->is_admin) {
+            return response()->json(['error' => 'ADMIN ONLY'], 403);
         }
+
+        $local = Photo::query()->find($id);
 
         $ok = $this->worker->deletePhoto($id, $local?->key);
 

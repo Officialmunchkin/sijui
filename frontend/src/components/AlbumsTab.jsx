@@ -110,17 +110,19 @@ export default function AlbumsTab() {
                 ) : (
                   <span style={{ fontSize: 28 }}>📷</span>
                 )}
-                {isAdmin && (
+                {!isGuest && (
                   <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
-                    <button
-                      className="mini"
-                      title="Rename album"
-                      aria-label={`Rename album ${a}`}
-                      style={{ width: 28, height: 28, background: 'rgba(26,26,46,.9)', border: '1px solid var(--line)', color: '#fff', fontSize: 10, borderRadius: '50%' }}
-                      onClick={(e) => { e.stopPropagation(); set({ renameAlbumId: a, renameAlbumName: a }) }}
-                    >
-                      ✎
-                    </button>
+                    {isAdmin && (
+                      <button
+                        className="mini"
+                        title="Rename album"
+                        aria-label={`Rename album ${a}`}
+                        style={{ width: 28, height: 28, background: 'rgba(26,26,46,.9)', border: '1px solid var(--line)', color: '#fff', fontSize: 10, borderRadius: '50%' }}
+                        onClick={(e) => { e.stopPropagation(); set({ renameAlbumId: a, renameAlbumName: a }) }}
+                      >
+                        ✎
+                      </button>
+                    )}
                     <button
                       className="mini"
                       title="Delete album"
