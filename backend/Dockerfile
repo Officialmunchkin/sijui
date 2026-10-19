@@ -1,32 +1,41 @@
 # syntax=docker/dockerfile:1
 #
-# FAM VAULT API — production image.
+# FAM VAULT API — PHP 8.3 + Apache, SQLite on the Fly volume.
 #
-# Portable on purpose: the same image runs on Render, Railway, Fly.io or any
-# Docker host. The app serves itself with `php artisan serve` (Laravel's
-# built-in server, which honours PHP_CLI_SERVER_WORKERS), so no nginx/php-fpm
-# stack is required for a family-sized workload.
-#
-FROM php:8.3-cli
+FROM php:8.3-apache
 
-# ----------------------------------------------------------------- system
-# git + unzip      -> composer
-# libpq-dev        -> pdo_pgsql (managed Postgres)
-# libsqlite3-dev   -> pdo_sqlite (default DB)
-# curl/openssl already ship with the base image and are what Guzzle uses to
-# talk to the Cloudflare Worker. No CA bundle needed on Linux.
+# --------------------------------------------------------------- extensions
+#   libsqlite3-dev -> pdo_sqlite (the app's database)
+#   libzip-dev     -> zip
+#   sqlite3        -> CLI for debugging inside the machine
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git unzip libpq-dev libsqlite3-dev \
-    && docker-php-ext-install pdo_pgsql \
+        libsqlite3-dev libzip-dev unzip sqlite3 \
+    && docker-php-ext-install pdo_sqlite zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# ------------------------------------------------------------------- apache
+# mod_rewrite: Laravel ships public/.htaccess for clean /api/... routing.
+RUN a2enmod rewrite headers
+
+# Serve Laravel's public/ directory as the document root.
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
+    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# CRITICAL: the stock image sets "AllowOverride None", which makes Apache IGNORE
+# public/.htaccess and 404 every route that isn't a real file. Laravel needs it.
+RUN sed -ri -e 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+
+# ----------------------------------------------------------------- composer
+# The php:*-apache image does NOT ship composer, so copy the official binary.
+# (Without this, `composer install` silently does nothing and Laravel has no
+#  vendor/ directory at all.)
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-WORKDIR /app
+WORKDIR /var/www/html
 
-# ----------------------------------------------------------- dependencies
-# Copied first so this layer is cached until composer.json/lock changes.
+# Dependencies first so this layer caches until composer.json/lock change.
 # --no-scripts: the build must not need a live .env or APP_KEY.
 COPY composer.json composer.lock ./
 RUN composer install \
@@ -34,18 +43,16 @@ RUN composer install \
         --prefer-dist --optimize-autoloader \
     && composer clear-cache
 
-# ------------------------------------------------------------ application
+# ---------------------------------------------------------------- application
 COPY . .
 
-# Rebuild the optimised autoloader now that every class is present.
 RUN composer dump-autoload --no-dev --optimize --no-scripts --no-interaction \
-    && chmod +x docker/entrypoint.sh
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod +x /var/www/html/docker/entrypoint.sh
 
-ENV APP_ENV=production \
-    APP_DEBUG=false \
-    PHP_CLI_SERVER_WORKERS=4 \
-    PORT=8080
+# Apache listens on 80; fly.toml sets internal_port = 80.
+EXPOSE 80
 
-EXPOSE 8080
-
-ENTRYPOINT ["docker/entrypoint.sh"]
+ENTRYPOINT ["/var/www/html/docker/entrypoint.sh"]
+CMD ["apache2-foreground"]

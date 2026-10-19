@@ -1,0 +1,18 @@
+# Netlify build config for the FAM VAULT frontend.
+#
+# This file lives inside frontend/, so its paths are RELATIVE to frontend/.
+# The authoritative monorepo config is ../netlify.toml (base = "frontend");
+# this one is the equivalent if Netlify's "Base directory" is set to frontend.
+#
+# Do NOT add `base = "frontend"` here — from inside frontend/ that would
+# resolve to frontend/frontend.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Single-page app: unknown paths fall back to index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,6 +1,19 @@
-// Frontend talks ONLY to the Laravel API. No R2/Worker secrets ever reach
-// the browser — the backend proxies file bytes through the Worker.
-const BASE = (import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000') + '/api'
+// FAM VAULT talks to the Laravel API for everything that is application
+// state — auth, members, albums, board, and the photo list/trash (the local
+// `photos` table is the source of truth). Photo BYTES live in R2 behind the
+// famvault-r2 Worker and are proxied by Laravel by default, so the browser
+// only ever talks to our API and needs no Worker CORS. Set
+// VITE_USE_WORKER_FILES=true to fetch bytes straight from the Worker instead.
+// No R2/Worker secrets ever reach the browser — the Worker holds the keys.
+//
+// NOTE: VITE_API_BASE already includes the /api suffix, e.g.
+//   https://famvault-backend.fly.dev/api
+const API_BASE = (import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api').replace(/\/+$/, '')
+
+// Public Cloudflare Worker in front of the R2 bucket (keys stay server-side).
+// Only used when VITE_USE_WORKER_FILES is enabled.
+const R2_BASE = (import.meta.env.VITE_R2_WORKER || 'https://famvault-r2.famvault.workers.dev').replace(/\/+$/, '')
+const USE_WORKER_FILES = String(import.meta.env.VITE_USE_WORKER_FILES || '') === 'true'
 
 let TOKEN = localStorage.getItem('famvault_token') || ''
 export function setToken(t){ TOKEN = t || ''; if(t) localStorage.setItem('famvault_token', t); else localStorage.removeItem('famvault_token') }
@@ -21,7 +34,7 @@ async function request(path, { method = 'GET', body, json = false, form = false 
     if(form){ opts.body = body }            // FormData — browser sets boundary
     else { opts.body = JSON.stringify(body) }
   }
-  const res = await fetch(BASE + path, opts)
+  const res = await fetch(API_BASE + path, opts)
   let data = null
   try { data = await res.json() } catch { /* non-JSON */ }
   if(!res.ok){
@@ -62,11 +75,16 @@ export const apiMovePhotos = (ids, album) => request('/photos/move', { method:'P
 export const apiDeletePhoto = (id) => request('/photos/' + encodeURIComponent(id), { method:'DELETE' })
 export const apiEmptyTrash = () => request('/photos/trash/empty', { method:'DELETE' })
 
-/* Build a same-origin URL for a photo's bytes (backend proxies the Worker). */
+/* Build a URL for a photo's bytes.
+   Default: the Laravel proxy (/api/photos/file/<key>) so the browser only
+   talks to our API and no Worker CORS is required. Opt-in: the R2 Worker's
+   own /file/<key> endpoint (needs the Worker to allow CORS for downloads). */
 export function fileURL(key){
   if(!key) return ''
   const enc = key.split('/').map(encodeURIComponent).join('/')
-  return BASE + '/photos/file/' + enc
+  return USE_WORKER_FILES
+    ? R2_BASE + '/file/' + enc
+    : API_BASE + '/photos/file/' + enc
 }
 
 /* Download a photo's bytes and save via a temporary anchor. */

@@ -1,29 +1,19 @@
-# Keep the production image lean and secret-free.
+# Keep the image lean and secret-free.
+vendor
+node_modules
 .git
 .gitignore
-.dockerignore
 
-# Never bake local secrets into an image.
+# Never bake local secrets into the image.
 .env
 .env.*
 !.env.example
 
-# Dependencies are installed inside the image.
-vendor/
-node_modules/
-
-# Local state / caches.
-database/database.sqlite
-database/*.sqlite
+# Local state — the SQLite DB lives on the Fly volume, not in the image.
+storage/database.sqlite
+storage/*.sqlite
 storage/logs/*
 storage/framework/cache/data/*
 storage/framework/sessions/*
 storage/framework/views/*
-storage/app/public/*
 bootstrap/cache/*.php
-
-# Dev-only files.
-tests/
-phpunit.xml
-*.md
-.editorconfig
