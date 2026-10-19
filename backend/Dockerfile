@@ -29,6 +29,14 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 # public/.htaccess and 404 every route that isn't a real file. Laravel needs it.
 RUN sed -ri -e 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
+# ------------------------------------------------------------- php settings
+# The stock php.ini limits are unusable for a photo vault:
+#   upload_max_filesize = 2M  -> every phone photo/video over 2 MB is silently
+#                                dropped before Laravel ever sees the file
+#   post_max_size       = 8M  -> the entire body vanishes over 8 MB
+# docker/uploads.ini raises them to the 200 MB cap enforced by PhotoController.
+COPY docker/uploads.ini /usr/local/etc/php/conf.d/zz-famvault-uploads.ini
+
 # ----------------------------------------------------------------- composer
 # The php:*-apache image does NOT ship composer, so copy the official binary.
 # (Without this, `composer install` silently does nothing and Laravel has no

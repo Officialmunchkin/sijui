@@ -97,18 +97,33 @@ class WorkerClient
      * POST /upload — streams the multipart form straight through to the
      * Worker (no local storage involved; the file goes browser -> Laravel ->
      * Worker -> R2).
+     *
+     * The file is handed to Guzzle as an open stream, NOT file_get_contents():
+     * a 200 MB video would otherwise be copied into PHP memory on top of the
+     * multipart body, blowing past memory_limit (and the 512 MB Fly VM).
      */
     public function upload(UploadedFile $file, string $caption, string $album, string $uploadedBy, array $tagged = []): array
     {
-        $res = $this->request(max(config('famvault.timeout'), 120))
-            ->withHeaders($this->memberHeaders())
-            ->attach('file', file_get_contents($file->getRealPath()), $file->getClientOriginalName())
-            ->post($this->baseUrl().'/upload', [
-                'caption' => $caption,
-                'album' => $album,
-                'uploadedBy' => $uploadedBy,
-                'tagged' => implode(',', $tagged),
-            ]);
+        $handle = fopen($file->getRealPath(), 'rb');
+
+        if ($handle === false) {
+            throw new \RuntimeException('CANNOT READ UPLOADED FILE');
+        }
+
+        try {
+            $res = $this->request(max(config('famvault.timeout'), 120))
+                ->withHeaders($this->memberHeaders())
+                ->attach('file', $handle, $file->getClientOriginalName())
+                ->post($this->baseUrl().'/upload', [
+                    'caption' => $caption,
+                    'album' => $album,
+                    'uploadedBy' => $uploadedBy,
+                    'tagged' => implode(',', $tagged),
+                ]);
+        } finally {
+            // Always release the temp file, even when the Worker call fails.
+            fclose($handle);
+        }
 
         if ($res->failed()) {
             throw new \RuntimeException($res->json('error') ?? 'UPLOAD FAILED ('.$res->status().')');
