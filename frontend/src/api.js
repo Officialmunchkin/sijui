@@ -7,7 +7,7 @@
 // No R2/Worker secrets ever reach the browser — the Worker holds the keys.
 //
 // NOTE: the API base already includes the /api suffix, e.g.
-//   https://famvault-backend.fly.dev/api
+//   https://famvault-backend.onrender.com/api
 // Accepts VITE_API_BASE_URL (production) or VITE_API_BASE.
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api').replace(/\/+$/, '')
 
