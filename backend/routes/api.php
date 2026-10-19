@@ -31,34 +31,30 @@ Route::get('/health', fn () => response()->json([
 
 // ------------------------------------------------- TEMP DIAG (remove me)
 Route::get('/_diag', function (\Illuminate\Http\Request $request) {
-    register_shutdown_function(function () {
-        $e = error_get_last();
-        if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
-            fwrite(STDERR, 'FAMVAULT_DIAG_FATAL '.json_encode($e)."\n");
-        }
-    });
-
     try {
-        $out = ['step' => 'boot'];
-        $out['k_ok'] = hash_equals('diag-7f3a91c2b6', (string) $request->query('k'));
+        $out = ['k_ok' => hash_equals('diag-7f3a91c2b6', (string) $request->query('k'))];
         $out['env'] = config('app.env');
-        $out['debug'] = config('app.debug');
         $out['cipher'] = config('app.cipher');
         $out['key_len'] = strlen((string) config('app.key'));
         $out['key_md5'] = md5((string) config('app.key'));
-        $out['key_head'] = substr((string) config('app.key'), 0, 7);
-        $out['prev_keys_type'] = gettype(config('app.previous_keys'));
 
-        $out['step'] = 'query';
+        $out['db_default'] = config('database.default');
+        $out['conn_driver'] = config('database.connections.libsql.driver');
+        $out['conn_database'] = config('database.connections.libsql.database');
+        $out['conn_url'] = config('database.connections.libsql.url');
+        $out['conn_token_set'] = (bool) config('database.connections.libsql.authToken');
+
+        $out['pdo_driver'] = \DB::connection()->getDriverName();
+        $out['pdo_name'] = \DB::connection()->getName();
+
         $m = \App\Models\Member::query()->find('herman');
-        $out['found'] = $m !== null;
         $raw = $m ? $m->password_secret : null;
-        $out['raw_type'] = gettype($raw);
+        $out['raw_is_string'] = is_string($raw);
         $out['raw_len'] = is_string($raw) ? strlen($raw) : null;
         $out['raw_md5'] = is_string($raw) ? md5($raw) : null;
-        $out['raw_head'] = is_string($raw) ? substr($raw, 0, 12) : null;
+        $out['raw_b64'] = is_string($raw) ? base64_encode($raw) : null;
+        $out['raw_hex_head'] = is_string($raw) ? bin2hex(substr($raw, 0, 12)) : null;
 
-        $out['step'] = 'decrypt';
         try {
             $d = \Illuminate\Support\Facades\Crypt::decryptString((string) $raw);
             $out['dec_ok'] = true;
@@ -74,7 +70,6 @@ Route::get('/_diag', function (\Illuminate\Http\Request $request) {
         return response()->json([
             'outer_exc' => get_class($e).' :: '.$e->getMessage(),
             'at' => $e->getFile().':'.$e->getLine(),
-            'trace' => array_slice(explode("\n", $e->getTraceAsString()), 0, 8),
         ], 200);
     }
 });
