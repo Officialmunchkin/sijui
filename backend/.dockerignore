@@ -1,0 +1,29 @@
+# Keep the production image lean and secret-free.
+.git
+.gitignore
+.dockerignore
+
+# Never bake local secrets into an image.
+.env
+.env.*
+!.env.example
+
+# Dependencies are installed inside the image.
+vendor/
+node_modules/
+
+# Local state / caches.
+database/database.sqlite
+database/*.sqlite
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/public/*
+bootstrap/cache/*.php
+
+# Dev-only files.
+tests/
+phpunit.xml
+*.md
+.editorconfig

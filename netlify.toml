@@ -1,0 +1,18 @@
+# Netlify build configuration for the FAM VAULT frontend.
+#
+# Only the React app is deployed here. The Laravel API lives on a separate
+# host (see DEPLOY.md) and is reached through VITE_API_BASE.
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Single-page app: unknown paths fall back to index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

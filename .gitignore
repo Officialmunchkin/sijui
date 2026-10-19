@@ -12,6 +12,7 @@ frontend/dist/
 backend/.env
 backend/.env.*
 !backend/.env.example
+!backend/.env.production.example
 
 # --- Local database / runtime data ---
 backend/database/database.sqlite
