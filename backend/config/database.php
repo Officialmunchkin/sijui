@@ -42,6 +42,34 @@ return [
             'synchronous' => null,
         ],
 
+        /*
+         * Turso / libSQL — remote-only connection, used in production.
+         *
+         * Render's free tier has no persistent disk and wipes the container
+         * filesystem whenever the service idles out, so nothing that must
+         * survive may live on local disk. Photos/bytes go to R2 through the
+         * Cloudflare Worker; all relational state (members, albums, photos,
+         * board, api_sessions) lives in Turso.
+         *
+         * IMPORTANT: 'database' is deliberately left NULL. The driver decides
+         * its mode in setConnectionMode() and only returns "remote" when
+         * 'database' is empty AND both url + authToken are present. Any
+         * non-empty path there would be treated as a local embedded replica.
+         *
+         * env() falls back to the TURSO_* spellings so either pair of variable
+         * names works.
+         */
+        'libsql' => [
+            'driver' => 'libsql',
+            'database' => env('DB_DATABASE'),
+            'prefix' => '',
+            'url' => env('DB_SYNC_URL', env('TURSO_DATABASE_URL', '')),
+            'authToken' => env('DB_AUTH_TOKEN', env('TURSO_AUTH_TOKEN', '')),
+            'syncInterval' => (int) env('DB_SYNC_INTERVAL', 5),
+            'read_your_writes' => (bool) env('DB_READ_YOUR_WRITES', true),
+            'encryptionKey' => env('DB_ENCRYPTION_KEY', ''),
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),
