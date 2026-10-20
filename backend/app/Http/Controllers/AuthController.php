@@ -6,7 +6,6 @@ use App\Models\ApiSession;
 use App\Models\Member;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -41,10 +40,6 @@ class AuthController extends Controller
             $member->save();
         } elseif (! Hash::check($data['password'], $member->password_hash)) {
             return response()->json(['error' => 'WRONG PASSWORD • TRY AGAIN'], 401);
-        } elseif (! $member->password_secret) {
-            // Backfill the viewable secret for hashes stored before it existed.
-            $member->password_secret = Crypt::encryptString($data['password']);
-            $member->save();
         }
 
         $session = ApiSession::issue($member);
@@ -142,5 +137,53 @@ class AuthController extends Controller
         $member->save();
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * POST /api/auth/change-password — { oldPassword, newPassword }
+     *
+     * A member changes their OWN password. The identity comes from the
+     * session token, never from the body, so there is no way to ask this
+     * endpoint to change someone else's.
+     *
+     * The old password is checked with Hash::check (constant-time against
+     * the bcrypt hash); the new one is hashed with bcrypt and the plaintext
+     * is discarded. Nothing here can reveal a stored password — it can only
+     * say "right" or "wrong".
+     *
+     * Changing a password also revokes every OTHER session for that member.
+     * Without that, a password change would not actually kick out anyone
+     * who had already stolen a token, which is most of the point of changing
+     * one. The caller's own session is kept so they are not logged out of
+     * the tab they are using.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        /** @var Member $member */
+        $member = $request->attributes->get('famvault_member');
+
+        if ($member->is_guest) {
+            return response()->json(['error' => 'GUESTS CANNOT SET PASSWORDS'], 403);
+        }
+
+        $data = $request->validate([
+            'oldPassword' => 'required|string|max:128',
+            'newPassword' => 'required|string|min:4|max:128',
+        ]);
+
+        if ($member->password_hash && ! Hash::check($data['oldPassword'], $member->password_hash)) {
+            return response()->json(['error' => 'WRONG OLD PASSWORD'], 400);
+        }
+
+        $member->setPassword($data['newPassword']);
+        $member->save();
+
+        // Log the fact, never the value.
+        $revoked = ApiSession::query()
+            ->where('member_id', $member->id)
+            ->where('id', '!=', $request->attributes->get('famvault_session')?->id)
+            ->delete();
+
+        return response()->json(['ok' => true, 'otherSessionsRevoked' => $revoked]);
     }
 }

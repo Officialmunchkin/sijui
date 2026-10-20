@@ -2,10 +2,14 @@ import { useVault } from '../VaultContext'
 import Avatar from './Avatar'
 
 export default function Header({ tabs }) {
-  const { state, set, logout, isAdmin, canSeeTrash } = useVault()
+  const { state, set, logout, isAdmin, canSeeTrash, isGuest } = useVault()
 
   const visibleTabs = tabs.filter((t) => {
     if (t === 'TRASH') return canSeeTrash
+    // Secret albums are a member-only feature: a guest has no identity the
+    // server would accept as an album owner, so the tab is hidden entirely
+    // rather than shown and then refused.
+    if (t === 'SECRET') return !isGuest
     return true
   })
 

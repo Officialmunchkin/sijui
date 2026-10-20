@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Album;
+use App\Models\MediaVisibility;
 use App\Models\Member;
 use App\Models\Photo;
 use App\Services\WorkerClient;
@@ -32,18 +33,67 @@ class PhotoController extends Controller
      *
      * Lists non-trashed photos from the local table (newest first). `tagged`
      * is a JSON array of member ids; `size` is bytes.
+     *
+     * SELECTIVE SHARING ("Who can see?"):
+     *   A photo with NO rows in media_visibility is public to the whole
+     *   family — that is the default and it keeps every existing photo
+     *   working untouched. Rows only exist to NARROW it:
+     *
+     *     id NOT IN (SELECT media_id FROM media_visibility)
+     *       OR id IN (SELECT media_id FROM media_visibility
+     *                 WHERE allowed_viewer_user_id = :viewer)
+     *
+     * `visibleTo` is echoed back (as member ids, like `tagged`) so the
+     * frontend can show the eye icon. It is only ever returned for photos the
+     * caller is allowed to see, so it never leaks the existence of a restricted
+     * photo to someone excluded from it.
+     *
+     * Guests and unauthenticated callers see public photos only: a guest is
+     * ephemeral and cannot be named as an allowed viewer, so a restricted
+     * photo has no way to reach one.
      */
     public function index(Request $request): JsonResponse
     {
+        /** @var Member|null $actor */
+        $actor = $request->attributes->get('famvault_member');
+
+        $viewerId = ($actor && ! $actor->is_guest) ? $actor->id : null;
+
         $query = Photo::query()->where('trashed', false);
 
         if (($album = $request->query('album')) && strtoupper($album) !== 'ALL') {
             $query->where('album', strtoupper($album));
         }
 
-        $photos = $query->orderByDesc('id')->get()->map(fn (Photo $p) => $p->toClientArray());
+        $query->where(function ($q) use ($viewerId) {
+            // Public leg: no visibility rows at all.
+            $q->whereNotExists(function ($sub) {
+                $sub->selectRaw('1')
+                    ->from('media_visibility')
+                    ->whereColumn('media_visibility.media_id', 'photos.id');
+            });
 
-        return response()->json(['photos' => $photos]);
+            // Restricted leg: named in the allow-list. Skipped entirely for
+            // guests/unauthenticated, who have no identity to match against.
+            if ($viewerId !== null) {
+                $q->orWhereExists(function ($sub) use ($viewerId) {
+                    $sub->selectRaw('1')
+                        ->from('media_visibility')
+                        ->whereColumn('media_visibility.media_id', 'photos.id')
+                        ->where('media_visibility.allowed_viewer_user_id', $viewerId);
+                });
+            }
+        });
+
+        $photos = $query->orderByDesc('id')->get();
+
+        $visible = $this->visibilityMap($photos->pluck('id')->all());
+
+        $items = $photos
+            ->map(fn (Photo $p) => $p->toClientArray() + ['visibleTo' => $visible[$p->id] ?? []])
+            ->values();
+
+        return response()->json(['photos' => $items]);
     }
 
     /**
@@ -94,6 +144,7 @@ class PhotoController extends Controller
             'caption' => 'nullable|string|max:300',
             'album' => 'nullable|string|max:60',
             'tagged' => 'nullable|string|max:500',
+            'allowed_viewers' => 'nullable',      // array of member ids, or CSV
         ]);
 
         $file = $request->file('file');
@@ -148,7 +199,55 @@ class PhotoController extends Controller
             ],
         );
 
-        return response()->json(['ok' => true, 'photo' => Photo::query()->find($id)?->toClientArray()], 201);
+        // SELECTIVE SHARING: "All Family" sends nothing (or everyone), which
+        // leaves zero rows — the public default. Picking individuals writes an
+        // allow-list, which is what narrows the photo. The uploader is always
+        // included so they never lock themselves out of their own memory.
+        $allowed = $this->normalizeViewers($request->input('allowed_viewers'));
+
+        if ($allowed !== []) {
+            $this->writeVisibility($id, array_values(array_unique(array_merge($allowed, [$actor->id]))));
+        }
+
+        return response()->json(['ok' => true, 'photo' => Photo::query()->find($id)?->toClientArray() + ['visibleTo' => $allowed]], 201);
+    }
+
+    /**
+     * PUT /api/photos/{id}/visibility — { allowed_viewers: [...] }
+     *
+     * Change your mind later. Empty list = back to public (rows deleted,
+     * which is exactly what "public" means here). Only the person who
+     * uploaded the photo may change this — not even the admin, consistent
+     * with the admin being bound by the same sharing rules as everyone else.
+     */
+    public function setVisibility(Request $request, string $id): JsonResponse
+    {
+        /** @var Member $actor */
+        $actor = $request->attributes->get('famvault_member');
+
+        if ($actor->is_guest) {
+            return response()->json(['error' => 'GUESTS CANNOT SHARE'], 403);
+        }
+
+        $photo = Photo::query()->find($id);
+
+        if (! $photo) {
+            return response()->json(['error' => 'PHOTO NOT FOUND'], 404);
+        }
+
+        if ($photo->uploaded_by !== $actor->id) {
+            return response()->json(['error' => 'ONLY THE UPLOADER CAN CHANGE WHO SEES THIS'], 403);
+        }
+
+        $allowed = $this->normalizeViewers($request->input('allowed_viewers'));
+
+        // The uploader is always kept in their own allow-list, otherwise
+        // sharing a photo with a subset would hide it from its author.
+        $final = $allowed === [] ? [] : array_values(array_unique(array_merge($allowed, [$actor->id])));
+
+        $this->writeVisibility($id, $final);
+
+        return response()->json(['ok' => true, 'visibleTo' => $final]);
     }
 
     /**
@@ -256,6 +355,7 @@ class PhotoController extends Controller
         }
 
         $local?->delete();
+        $this->forgetVisibility($id);
 
         return response()->json(['ok' => true]);
     }
@@ -279,6 +379,7 @@ class PhotoController extends Controller
         foreach ($trashed as $p) {
             if ($this->worker->deletePhoto($p->id, $p->key)) {
                 $p->delete();
+                $this->forgetVisibility($p->id);
                 $deleted++;
             }
         }
@@ -290,9 +391,36 @@ class PhotoController extends Controller
      * GET /api/photos/file/{key} — same-origin proxy to the Worker's
      * /file/<key> endpoint. The frontend loads images/videos through here so
      * it only ever talks to this API (never the Worker or R2 directly).
+     *
+     * Visibility is enforced HERE as well as in the list, otherwise a
+     * restricted photo's bytes would still be readable by anyone who knew or
+     * guessed the object key. A photo with no visibility rows (or no local
+     * row at all) stays public, exactly as before.
+     *
+     * Restricted responses are marked no-store: an immutable year-long cache
+     * header on private content would let a shared cache keep serving it
+     * after the uploader un-shared it.
      */
     public function file(Request $request, string $key)
     {
+        $photo = Photo::query()->where('key', $key)->first();
+
+        // null = not restricted; empty collection = also not restricted.
+        $allowed = $photo
+            ? MediaVisibility::query()->where('media_id', $photo->id)->pluck('allowed_viewer_user_id')
+            : null;
+
+        $restricted = $allowed !== null && $allowed->isNotEmpty();
+
+        if ($restricted) {
+            /** @var Member|null $actor */
+            $actor = $request->attributes->get('famvault_member');
+
+            if (! $actor || $actor->is_guest || ! $allowed->contains($actor->id)) {
+                return response()->json(['error' => 'NOT SHARED WITH YOU'], 403);
+            }
+        }
+
         try {
             $res = $this->worker->getFile($key);
         } catch (\Throwable $e) {
@@ -305,9 +433,84 @@ class PhotoController extends Controller
 
         $headers = [
             'Content-Type' => $res->header('Content-Type') ?: 'application/octet-stream',
-            'Cache-Control' => 'public, max-age=31536000, immutable',
+            'Cache-Control' => $restricted
+                ? 'private, no-store, max-age=0'
+                : 'public, max-age=31536000, immutable',
         ];
 
         return response($res->body(), 200, $headers);
+    }
+
+    // ------------------------------------------------------- VISIBILITY
+
+    /** photo id -> [allowed viewer ids]. One query, no N+1. */
+    private function visibilityMap(array $photoIds): array
+    {
+        if ($photoIds === []) {
+            return [];
+        }
+
+        $map = [];
+
+        MediaVisibility::query()
+            ->whereIn('media_id', $photoIds)
+            ->get()
+            ->each(function (MediaVisibility $row) use (&$map) {
+                $map[$row->media_id][] = $row->allowed_viewer_user_id;
+            });
+
+        return $map;
+    }
+
+    /**
+     * Accept an allow-list as either a JSON array or a comma string (the
+     * upload form already posts `tagged` as CSV, so both shapes exist here),
+     * and reduce it to member ids that actually exist and aren't guests.
+     *
+     * Dropping unknown ids matters: a typo or a stale id would otherwise
+     * silently narrow a photo to nobody, which reads as "public" in the UI
+     * but behaves as "restricted" in the database.
+     */
+    private function normalizeViewers(mixed $raw): array
+    {
+        if (is_string($raw)) {
+            $raw = array_filter(array_map('trim', explode(',', $raw)));
+        }
+
+        if (! is_array($raw) || $raw === []) {
+            return [];
+        }
+
+        $ids = array_values(array_unique(array_map('strval', $raw)));
+
+        return Member::query()
+            ->where('is_guest', false)
+            ->whereIn('id', $ids)
+            ->pluck('id')
+            ->all();
+    }
+
+    /** Replace a photo's allow-list wholesale. Empty $ids = public again. */
+    private function writeVisibility(string $photoId, array $ids): void
+    {
+        MediaVisibility::query()->where('media_id', $photoId)->delete();
+
+        if ($ids === []) {
+            return;
+        }
+
+        MediaVisibility::query()->insert(
+            array_map(fn (string $viewerId) => [
+                'media_id' => $photoId,
+                'allowed_viewer_user_id' => $viewerId,
+                'created_at' => now(),
+            ], array_values(array_unique($ids))),
+        );
+    }
+
+    /** Drop a photo's visibility rows when the photo itself goes away. */
+    private function forgetVisibility(string $photoId): void
+    {
+        MediaVisibility::query()->where('media_id', $photoId)->delete();
     }
 }

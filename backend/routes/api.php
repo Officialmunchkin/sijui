@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\PhotoController;
+use App\Http\Controllers\SecretAlbumController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,18 +39,15 @@ Route::prefix('auth')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/password', [AuthController::class, 'setPassword']);
+        // Member self-service change: verify old, hash new, revoke other
+        // sessions. Identity comes from the token, never the body.
+        Route::post('/change-password', [AuthController::class, 'changePassword']);
     });
 });
 
 // ---------------------------------------------------------------- MEMBERS
 // The member grid is visible before login (same as the original app).
 Route::get('/members', [MemberController::class, 'index']);
-
-// Admin-only password viewer. Registered BEFORE /members/{id} so the literal
-// "passwords" path isn't captured as an {id}. The admin check lives in the
-// controller (denyNonAdmin).
-Route::get('/members/passwords', [MemberController::class, 'passwords'])
-    ->middleware('auth.famvault');
 
 Route::get('/members/{id}', [MemberController::class, 'show']);
 
@@ -59,6 +57,19 @@ Route::middleware('auth.famvault')->group(function () {
     Route::patch('/members/{id}', [MemberController::class, 'update']);
     Route::delete('/members/{id}', [MemberController::class, 'destroy']);
     Route::post('/members/{id}/password', [MemberController::class, 'resetPassword']);
+});
+
+// ---------------------------------------------------------------- ADMIN
+// Password management. Admin can RESET a password but can never read one:
+// passwords are bcrypt-hashed on arrival and nothing on this server can
+// turn a hash back into the original. Every reset writes an audit line
+// (who / whose / when — never the value).
+//
+// The old GET /members/passwords viewer is gone, along with the
+// members.password_secret column it depended on.
+Route::middleware('auth.famvault')->prefix('admin')->group(function () {
+    Route::get('/users', [MemberController::class, 'adminUsers']);
+    Route::post('/users/{id}/reset-password', [MemberController::class, 'adminResetPassword']);
 });
 
 // ---------------------------------------------------------------- ALBUMS
@@ -80,11 +91,33 @@ Route::get('/photos/file/{key}', [PhotoController::class, 'file'])->where('key',
 
 Route::middleware('auth.famvault')->group(function () {
     Route::get('/photos/trash', [PhotoController::class, 'trash']);           // admin-only
-    Route::post('/photos/upload', [PhotoController::class, 'upload']);
+    Route::post('/photos/upload', [PhotoController::class, 'upload']);        // accepts allowed_viewers
     Route::post('/photos/trash', [PhotoController::class, 'updateTrash']);   // { ids, action: trash|restore }
     Route::post('/photos/move', [PhotoController::class, 'move']);           // { ids, album }
     Route::delete('/photos/trash/empty', [PhotoController::class, 'emptyTrash']);
     Route::delete('/photos/{id}', [PhotoController::class, 'destroy']);
+    // Change your mind about who can see a photo. Uploader only (the admin
+    // is bound by the same rule as everyone else). Empty list = public.
+    Route::put('/photos/{id}/visibility', [PhotoController::class, 'setVisibility']);
+    Route::patch('/photos/{id}/visibility', [PhotoController::class, 'setVisibility']);
+});
+
+// --------------------------------------------------------- SECRET ALBUMS
+// End-to-end encrypted, admin-blind. The server holds ciphertext, a name
+// and a salt — never a password, never a key, never a plaintext URL or
+// file name. Ownership is checked on every route INCLUDING the byte
+// stream, and there is deliberately no is_admin escape hatch anywhere in
+// SecretAlbumController, so the admin gets 403 exactly like any other
+// non-owner. See that controller for the full threat model.
+Route::middleware('auth.famvault')->group(function () {
+    Route::post('/secret-albums/create', [SecretAlbumController::class, 'createAlbum']);
+    Route::get('/secret-albums', [SecretAlbumController::class, 'indexAlbums']);
+    Route::get('/secret-albums/{id}/media', [SecretAlbumController::class, 'listMedia']);
+    Route::delete('/secret-albums/{id}', [SecretAlbumController::class, 'destroyAlbum']);
+
+    Route::post('/secret-media/upload', [SecretAlbumController::class, 'upload']);   // ciphertext only
+    Route::get('/secret-media/file/{id}', [SecretAlbumController::class, 'file']);   // owner-only bytes
+    Route::delete('/secret-media/{id}', [SecretAlbumController::class, 'destroyMedia']);
 });
 
 // ---------------------------------------------------------------- BOARD

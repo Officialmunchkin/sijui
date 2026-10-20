@@ -101,8 +101,13 @@ class WorkerClient
      * The file is handed to Guzzle as an open stream, NOT file_get_contents():
      * a 200 MB video would otherwise be copied into PHP memory on top of the
      * multipart body, blowing past memory_limit (and the 512 MB Fly VM).
+     *
+     * $asName overrides the filename sent to the Worker. Secret Albums use it
+     * to send a generated "secret_<rand>.jpg" instead of the client's name —
+     * the Worker only accepts media extensions, and the real name is stored
+     * encrypted client-side, so no plaintext name ever leaves the browser.
      */
-    public function upload(UploadedFile $file, string $caption, string $album, string $uploadedBy, array $tagged = []): array
+    public function upload(UploadedFile $file, string $caption, string $album, string $uploadedBy, array $tagged = [], ?string $asName = null): array
     {
         $handle = fopen($file->getRealPath(), 'rb');
 
@@ -113,7 +118,7 @@ class WorkerClient
         try {
             $res = $this->request(max(config('famvault.timeout'), 120))
                 ->withHeaders($this->memberHeaders())
-                ->attach('file', $handle, $file->getClientOriginalName())
+                ->attach('file', $handle, $asName ?: $file->getClientOriginalName())
                 ->post($this->baseUrl().'/upload', [
                     'caption' => $caption,
                     'album' => $album,
@@ -144,14 +149,27 @@ class WorkerClient
         }
 
         if ($key) {
-            $res = $this->request()
-                ->withHeaders($this->memberHeaders())
-                ->delete($this->baseUrl().'/file/'.$this->encodeKey($key));
-
-            return ! $res->failed();
+            return $this->deleteFile($key);
         }
 
         return false;
+    }
+
+    /**
+     * DELETE /file/<key> — remove one object by its key, directly.
+     *
+     * Use this (not deletePhoto) when there is no Worker photo id: an R2
+     * delete is idempotent, so DELETE /photos/<some-id-that-does-not-exist>
+     * can answer 200 having deleted nothing, which would silently orphan the
+     * object. Secret media only ever has a key, never a Worker photo id.
+     */
+    public function deleteFile(string $key): bool
+    {
+        $res = $this->request()
+            ->withHeaders($this->memberHeaders())
+            ->delete($this->baseUrl().'/file/'.$this->encodeKey($key));
+
+        return ! $res->failed();
     }
 
     /** POST /photos/trash — { ids, action: "trash"|"restore" } */

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApiSession;
 use App\Models\Member;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class MemberController extends Controller
@@ -177,19 +179,54 @@ class MemberController extends Controller
             'password' => 'required|string|min:2|max:128',
         ]);
 
-        $member->setPassword($data['password']);
-        $member->save();
+        $this->applyAdminReset($request, $member, $data['password']);
 
         return response()->json(['ok' => true]);
     }
 
     /**
-     * GET /api/members/passwords — ADMIN ONLY.
+     * POST /api/admin/users/{id}/reset-password — { newPassword }
      *
-     * Returns each member's viewable (decrypted) password so herman can see
-     * the whole family's logins from the ADMIN tab. Guests excluded.
+     * Alias of the above with the shape the spec asks for. Same handler
+     * underneath, so there is one place where a reset actually happens.
+     *
+     * The new password is hashed and never echoed, logged, or stored in
+     * plaintext anywhere. What IS recorded is the audit line: who reset
+     * whose password, and when — without the value.
      */
-    public function passwords(Request $request): JsonResponse
+    public function adminResetPassword(Request $request, string $id): JsonResponse
+    {
+        if ($err = $this->denyNonAdmin($request)) {
+            return $err;
+        }
+
+        $member = Member::query()->where('id', $id)->first();
+
+        if (! $member) {
+            return response()->json(['error' => 'MEMBER NOT FOUND'], 404);
+        }
+
+        $data = $request->validate([
+            'newPassword' => 'required|string|min:4|max:128',
+        ]);
+
+        $this->applyAdminReset($request, $member, $data['newPassword']);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * GET /api/admin/users — ADMIN ONLY. The member table for the ADMIN tab.
+     *
+     * Returns id, name, role, hasPassword and createdAt. Deliberately absent:
+     * password_hash, password_secret, and any plaintext — this endpoint can
+     * report WHETHER a member has a password, never what it is.
+     *
+     * This app has no email concept (login is by member handle), so there is
+     * no email column to return; inventing empty ones would be worse than
+     * leaving them out. Role is derived from the two flags rather than stored.
+     */
+    public function adminUsers(Request $request): JsonResponse
     {
         if ($err = $this->denyNonAdmin($request)) {
             return $err;
@@ -197,20 +234,60 @@ class MemberController extends Controller
 
         $order = ['jermaine', 'lucy', 'faith', 'herman', 'hossam', 'amber'];
 
-        $list = Member::query()
+        $users = Member::query()
             ->where('is_guest', false)
             ->get()
             ->sortBy(fn (Member $m) => array_search($m->id, $order) === false ? PHP_INT_MAX : array_search($m->id, $order))
             ->map(fn (Member $m) => [
                 'id' => $m->id,
                 'name' => $m->name,
+                'relation' => $m->relation,
+                'role' => $m->is_admin ? 'admin' : 'member',
                 'hasPassword' => (bool) $m->password_hash,
-                'password' => $m->viewablePassword(),
+                'createdAt' => $m->created_at?->toIso8601String(),
             ])
             ->values();
 
-        return response()->json(['passwords' => $list]);
+        return response()->json(['users' => $users]);
     }
+
+    /**
+     * Hash + store a new password for a member, on the admin's behalf.
+     *
+     * The plaintext is passed in, hashed immediately, and never returned,
+     * logged, or persisted. Only the audit trail of the EVENT is written.
+     */
+    private function applyAdminReset(Request $request, Member $member, string $newPassword): void
+    {
+        /** @var Member $actor */
+        $actor = $request->attributes->get('famvault_member');
+
+        $member->setPassword($newPassword);
+        $member->save();
+
+        // Kill that member's existing sessions too: a reset usually means
+        // "this person can no longer get in" or "their password leaked", and
+        // a password change that leaves stolen tokens valid is theatre.
+        ApiSession::query()->where('member_id', $member->id)->delete();
+
+        // Audit trail: WHO, WHOSE, WHEN — never the password itself.
+        Log::info(sprintf(
+            'Admin reset password for user %s at %s (by %s)',
+            $member->id,
+            now()->toIso8601String(),
+            $actor->id,
+        ));
+    }
+
+    /**
+     * GET /api/members/passwords was removed on purpose.
+     *
+     * It returned every member's decrypted password to the admin. Passwords
+     * are now hashed only: there is nothing on this server that could answer
+     * that request even if it were re-added. Use GET /api/admin/users for
+     * "who has a password set", and POST /api/admin/users/{id}/reset-password
+     * to give someone a new one.
+     */
 
     private function denyNonAdmin(Request $request): ?JsonResponse
     {

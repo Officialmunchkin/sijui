@@ -7,6 +7,7 @@ import MembersTab from './components/MembersTab'
 import BoardTab from './components/BoardTab'
 import TrashTab from './components/TrashTab'
 import AdminTab from './components/AdminTab'
+import SecretAlbumTab from './components/SecretAlbumTab'
 import UploadModal from './components/UploadModal'
 import Lightbox from './components/Lightbox'
 import AddMemberModal from './components/AddMemberModal'
@@ -31,7 +32,7 @@ export default function App() {
 
   if (!state.me) return <LoginScreen />
 
-  const tabs = ['HOME', 'ALBUMS', 'MEMBERS', 'BOARD']
+  const tabs = ['HOME', 'ALBUMS', 'SECRET', 'MEMBERS', 'BOARD']
   if (isAdmin) tabs.push('ADMIN')
   if (isAdmin) tabs.push('TRASH')
 
@@ -50,6 +51,7 @@ export default function App() {
       <div className="content">
         {state.tab === 'HOME' && <HomeTab />}
         {state.tab === 'ALBUMS' && <AlbumsTab />}
+        {state.tab === 'SECRET' && !isGuest && <SecretAlbumTab />}
         {state.tab === 'MEMBERS' && <MembersTab />}
         {state.tab === 'BOARD' && <BoardTab />}
         {state.tab === 'ADMIN' && isAdmin && <AdminTab />}

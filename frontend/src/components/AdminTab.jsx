@@ -9,7 +9,7 @@ export default function AdminTab() {
   const {
     state, set, isAdmin,
     removeMember, adminSetPassword, deleteAlbum, emptyTrash,
-    restorePhotos, deletePhotoForever, viewPasswords, downloadAlbumZip,
+    restorePhotos, deletePhotoForever, adminResetPassword, downloadAlbumZip,
     editBoardPost, deleteBoardPost, toast,
   } = useVault()
 
@@ -18,6 +18,8 @@ export default function AdminTab() {
   }
 
   const setCount = state.members.filter((m) => m.hasPassword).length
+
+  const resetTarget = state.members.find((m) => m.id === state.resetPwId)
 
   /* ---- storage: active + trashed bytes vs the 10GB budget ---- */
   const usedBytes =
@@ -38,8 +40,6 @@ export default function AdminTab() {
     }
     return [...map.values()].sort((a, b) => b.at - a.at)
   })()
-
-  const pwList = state.adminPasswords
 
   return (
     <>
@@ -101,59 +101,61 @@ export default function AdminTab() {
         </div>
       </div>
 
-      {/* ---------- PASSWORDS ---------- */}
+      {/* ---------- PASSWORDS ----------
+          Reset only. There is no "view" here because there is nothing to
+          view: passwords are bcrypt-hashed on arrival and the server has no
+          way to turn a hash back into the original. The admin replaces a
+          password; they never see one. */}
       <div className="card" style={{ marginTop: 14, borderColor: 'rgba(139,92,246,.3)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ fontSize: 11, letterSpacing: '.3em', color: '#C4B5FD', fontWeight: 700 }}>
-            PASSWORDS • SET / RESET / VIEW
+            PASSWORDS • RESET
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 9, padding: '4px 8px', borderRadius: 999, background: 'rgba(139,92,246,.2)', border: '1px solid rgba(139,92,246,.3)', color: '#C4B5FD' }}>
-              {setCount}/{state.members.length} SET
-            </span>
-            <button
-              className="btn mini"
-              onClick={() => {
-                if (pwList) set({ adminPasswords: null })
-                else viewPasswords().catch((e) => toast(e.message || 'COULD NOT LOAD'))
-              }}
-            >
-              {pwList ? '🙈 HIDE PASSWORDS' : '👁 VIEW ALL PASSWORDS'}
-            </button>
-          </div>
+          <span style={{ fontSize: 9, padding: '4px 8px', borderRadius: 999, background: 'rgba(139,92,246,.2)', border: '1px solid rgba(139,92,246,.3)', color: '#C4B5FD' }}>
+            {setCount}/{state.members.length} SET
+          </span>
         </div>
 
-        {pwList && (
-          <div style={{ marginTop: 14, display: 'grid', gap: 8 }}>
-            {pwList.map((p) => (
-              <div key={p.id} style={{ padding: '10px 12px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface2)', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: 120, fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#fff' }}>
-                  {p.name}
-                </div>
-                <div style={{ fontFamily: 'var(--mono, monospace)', fontSize: 11, letterSpacing: '.1em', color: p.password ? 'var(--ok)' : 'var(--dim)' }}>
-                  {p.password ? p.password : '— NOT SET —'}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <div style={{ marginTop: 10, fontSize: 9, letterSpacing: '.14em', color: 'var(--dim)', lineHeight: 1.7 }}>
+          PASSWORDS ARE STORED AS ONE-WAY HASHES. YOU CAN GIVE SOMEONE A NEW ONE — THERE IS NO WAY TO READ THEIR CURRENT ONE, AND NO WAY TO RECOVER A FORGOTTEN ONE.
+        </div>
 
-        <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+        {/* Name | Password | Actions */}
+        <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 10, padding: '0 4px', fontSize: 9, letterSpacing: '.2em', color: 'var(--dim)' }}>
+            <div style={{ flex: 2, minWidth: 0 }}>NAME</div>
+            <div style={{ flex: 1, minWidth: 0 }}>PASSWORD</div>
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>ACTIONS</div>
+          </div>
+
           {state.members.map((m) => (
-            <div key={m.id} style={{ padding: 14, borderRadius: 16, border: '1px solid var(--line)', background: 'var(--surface2)', display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <div className="field-label">NEW PASSWORD FOR {m.name}</div>
-                <input
-                  className="input"
-                  type="password"
-                  placeholder="••••••••"
-                  value={state.adminPwDrafts[m.id] || ''}
-                  onChange={(e) => set({ adminPwDrafts: { ...state.adminPwDrafts, [m.id]: e.target.value } })}
-                />
+            <div
+              key={m.id}
+              style={{
+                display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap',
+                padding: '10px 4px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface2)',
+              }}
+            >
+              <div style={{ flex: 2, minWidth: 120 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#fff' }}>
+                  {m.name}
+                  {m.isAdmin && <span className="tag admin" style={{ marginLeft: 6 }}>ADMIN</span>}
+                </div>
+                <div style={{ marginTop: 2, fontSize: 9, letterSpacing: '.14em', color: 'var(--dim)' }}>{m.relation || m.id}</div>
               </div>
-              <button className="btn mini primary" onClick={() => adminSetPassword(m.id).catch((e) => toast(e.message || 'SET FAILED'))}>
-                SET PASSWORD
-              </button>
+
+              <div style={{ flex: 1, minWidth: 90, fontSize: 10, letterSpacing: '.12em', color: m.hasPassword ? 'var(--ok)' : 'var(--dim)' }}>
+                {m.hasPassword ? '● SET' : '— NOT SET —'}
+              </div>
+
+              <div style={{ flex: 1, minWidth: 90, display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  className="btn mini primary"
+                  onClick={() => set({ resetPwId: m.id, resetPwDraft: '' })}
+                >
+                  RESET PASSWORD
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -327,6 +329,56 @@ export default function AdminTab() {
           PERMANENT DELETES CANNOT BE UNDONE — FILES ARE PURGED FROM R2 STORAGE.
         </div>
       </div>
+
+      {/* ---------- RESET PASSWORD MODAL ----------
+          Set a new password for one member. The current one is never shown,
+          never asked for, and could not be shown if it were — the server
+          only stores a bcrypt hash. Their other sessions are signed out. */}
+      {state.resetPwId && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Reset password">
+          <div className="backdrop" onClick={() => set({ resetPwId: null, resetPwDraft: '' })} />
+          <div className="modal">
+            <button className="x" onClick={() => set({ resetPwId: null, resetPwDraft: '' })} aria-label="Close">✕</button>
+
+            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.22em', color: '#fff' }}>
+              SET NEW PASSWORD FOR {resetTarget ? resetTarget.name : state.resetPwId}
+            </div>
+
+            <div style={{ marginTop: 10, fontSize: 10, letterSpacing: '.12em', color: 'var(--dim)', lineHeight: 1.7 }}>
+              THEIR CURRENT PASSWORD IS NOT VISIBLE TO YOU AND NEVER WILL BE. TYPING A NEW ONE HERE
+              REPLACES IT, AND SIGNS THEM OUT OF ANY OTHER DEVICE THEY ARE LOGGED IN ON.
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <div className="field-label">NEW PASSWORD</div>
+              <input
+                className="input"
+                type="password"
+                placeholder="••••••••"
+                value={state.resetPwDraft}
+                onChange={(e) => set({ resetPwDraft: e.target.value })}
+                onKeyDown={(e) => { if (e.key === 'Enter' && state.resetPwDraft.trim().length >= 4) adminResetPassword().catch((err) => toast(err.message || 'RESET FAILED')) }}
+                autoFocus
+              />
+              <div style={{ marginTop: 6, fontSize: 9, letterSpacing: '.1em', color: 'var(--dim)' }}>
+                4+ CHARACTERS. THEY WILL NEED THIS TO LOG IN.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <button className="btn" onClick={() => set({ resetPwId: null, resetPwDraft: '' })}>CANCEL</button>
+              <button
+                className="btn primary"
+                style={{ flex: 1 }}
+                disabled={state.resetPwDraft.trim().length < 4}
+                onClick={() => adminResetPassword().catch((e) => toast(e.message || 'RESET FAILED'))}
+              >
+                RESET PASSWORD
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

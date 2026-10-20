@@ -28,6 +28,10 @@ export default function PhotoCard({ photo }) {
   const src = photo.src || fileURL(photo.key)
   const isVideo = photo.type === 'video'
 
+  // visibleTo holds member ids (like `tagged` does) — map to display names
+  // for the "Visible to: Mom, Dad" tooltip.
+  const nameOf = (id) => (state.members.find((m) => m.id === id) || {}).name || id
+
   return (
     <figure
       className="photo-card"
@@ -46,6 +50,23 @@ export default function PhotoCard({ photo }) {
 
       <span className="photo-album-tag">{photo.album}</span>
       <span className="photo-like">♥️ {photo.likes || 0}</span>
+
+      {/* SELECTIVE SHARING marker. visibleTo is only ever sent for photos the
+          caller is allowed to see, so this never exposes a restricted photo to
+          someone excluded from it. Empty list = All Family, so no badge. */}
+      {photo.visibleTo && photo.visibleTo.length > 0 && (
+        <span
+          title={`Visible to: ${photo.visibleTo.map((id) => nameOf(id)).join(', ')}`}
+          style={{
+            position: 'absolute', top: 8, right: 8, display: 'flex', alignItems: 'center', gap: 4,
+            padding: '3px 7px', borderRadius: 999, fontSize: 9, fontWeight: 700, letterSpacing: '.08em',
+            background: 'rgba(10,8,16,.82)', border: '1px solid rgba(139,92,246,.45)', color: '#C4B5FD',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          👁 {photo.visibleTo.length}
+        </span>
+      )}
 
       {state.selectMode && (
         <span

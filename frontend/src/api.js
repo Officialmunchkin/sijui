@@ -58,8 +58,23 @@ export const apiCreateMember = (m) => request('/members', { method:'POST', json:
 export const apiUpdateMember = (id, m) => request('/members/' + encodeURIComponent(id), { method:'PUT', json:true, body:m })
 export const apiDeleteMember = (id) => request('/members/' + encodeURIComponent(id), { method:'DELETE' })
 export const apiResetPassword = (id, password) => request('/members/' + encodeURIComponent(id) + '/password', { method:'POST', json:true, body:{ password } })
-/* Admin-only: view every member's (decrypted) password. */
-export const apiViewPasswords = () => request('/members/passwords')
+/* NOTE: GET /members/passwords was removed. Passwords are hashed server-side
+   and there is no endpoint that can return one — not even for the admin. */
+
+/* ------------------------------------------------------ PASSWORDS */
+/* Member self-service: prove you know the old one, then set a new one.
+   The server re-checks it against the bcrypt hash; nothing is ever echoed. */
+export const apiChangePassword = (oldPassword, newPassword) =>
+  request('/auth/change-password', { method:'POST', json:true, body:{ oldPassword, newPassword } })
+
+/* Admin: the member table (id, name, role, hasPassword, createdAt) —
+   never a password, never a hash. */
+export const apiAdminUsers = () => request('/admin/users')
+
+/* Admin: replace a member's password. The new value goes in and is hashed;
+   what comes back is just { ok:true }. */
+export const apiAdminResetPassword = (id, newPassword) =>
+  request('/admin/users/' + encodeURIComponent(id) + '/reset-password', { method:'POST', json:true, body:{ newPassword } })
 
 /* --------------------------------------------------------- ALBUMS */
 export const apiAlbums = () => request('/albums')
@@ -76,6 +91,36 @@ export const apiRestorePhotos = (ids) => request('/photos/trash', { method:'POST
 export const apiMovePhotos = (ids, album) => request('/photos/move', { method:'POST', json:true, body:{ ids, album } })
 export const apiDeletePhoto = (id) => request('/photos/' + encodeURIComponent(id), { method:'DELETE' })
 export const apiEmptyTrash = () => request('/photos/trash/empty', { method:'DELETE' })
+
+/* --------------------------------------------- SELECTIVE SHARING
+   Change who can see one photo. Empty list = back to public (that is what
+   "public" means server-side: no visibility rows). Uploader only. */
+export const apiSetVisibility = (id, allowed_viewers) =>
+  request('/photos/' + encodeURIComponent(id) + '/visibility', { method:'PUT', json:true, body:{ allowed_viewers } })
+
+/* ------------------------------------------------- SECRET ALBUMS
+   End-to-end encrypted. These endpoints only ever carry ciphertext, a name
+   and a salt — the key is derived and held in the browser (see crypto.js)
+   and is never sent. */
+export const apiSecretAlbums = () => request('/secret-albums')
+export const apiCreateSecretAlbum = (name, salt) =>
+  request('/secret-albums/create', { method:'POST', json:true, body:{ name, salt } })
+export const apiSecretMedia = (albumId) =>
+  request('/secret-albums/' + encodeURIComponent(albumId) + '/media')
+export const apiUploadSecretMedia = (formData) =>
+  request('/secret-media/upload', { method:'POST', form:true, body:formData })
+export const apiDeleteSecretMedia = (id) => request('/secret-media/' + encodeURIComponent(id), { method:'DELETE' })
+export const apiDeleteSecretAlbum = (id) => request('/secret-albums/' + encodeURIComponent(id), { method:'DELETE' })
+
+/* Fetch the CIPHERTEXT for one secret file. The bytes come back encrypted;
+   decryptBytes() in the browser is what turns them into a picture. */
+export async function apiFetchSecretBytes(id){
+  const res = await fetch(API_BASE + '/secret-media/file/' + encodeURIComponent(id), {
+    headers: TOKEN ? { 'Authorization':'Bearer ' + TOKEN } : {},
+  })
+  if(!res.ok) throw new Error(res.status === 403 ? 'NOT YOUR SECRET ALBUM' : 'FETCH FAILED')
+  return await res.arrayBuffer()
+}
 
 /* Build a URL for a photo's bytes.
    Default: the Laravel proxy (/api/photos/file/<key>) so the browser only

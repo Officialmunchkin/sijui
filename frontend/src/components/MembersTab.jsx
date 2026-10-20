@@ -3,7 +3,15 @@ import Avatar from './Avatar'
 import { bdayInfo } from '../utils'
 
 export default function MembersTab() {
-  const { state, set, isAdmin, isGuest, saveBio } = useVault()
+  const { state, set, isAdmin, isGuest, saveBio, changeMyPassword } = useVault()
+
+  // The member's own "profile" area — this app has no router and no profile
+  // page, so the Change Password form lives at the top of the MEMBERS tab,
+  // visible only to the logged-in member (never a guest, never someone
+  // else's row).
+  const me = state.me
+  const canChangePassword = !!me && !me.isGuest && !isGuest
+  const pw = state.pwChange
 
   return (
     <>
@@ -17,6 +25,74 @@ export default function MembersTab() {
           </button>
         )}
       </div>
+
+      {/* ---------- CHANGE MY PASSWORD (the logged-in member's own) ----------
+          Three fields, current password required. The server re-checks the
+          old one against the bcrypt hash, so there is no way to change it
+          without knowing it, and nothing here can reveal what it currently
+          is. */}
+      {canChangePassword && (
+        <div className="card" style={{ marginTop: 14, borderColor: 'rgba(139,92,246,.3)' }}>
+          <div style={{ fontSize: 11, letterSpacing: '.3em', color: '#C4B5FD', fontWeight: 700 }}>
+            CHANGE PASSWORD
+          </div>
+          <div style={{ marginTop: 6, fontSize: 9, letterSpacing: '.14em', color: 'var(--dim)', lineHeight: 1.7 }}>
+            ONLY YOU CAN DO THIS, AND ONLY WITH YOUR CURRENT PASSWORD. CHANGING IT SIGNS YOU OUT
+            OF ANY OTHER DEVICE.
+          </div>
+
+          <div style={{ marginTop: 12, display: 'grid', gap: 10, maxWidth: 420 }}>
+            <div>
+              <div className="field-label">CURRENT PASSWORD</div>
+              <input
+                className="input"
+                type="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={pw.oldPassword}
+                onChange={(e) => set({ pwChange: { ...pw, oldPassword: e.target.value } })}
+              />
+            </div>
+            <div>
+              <div className="field-label">NEW PASSWORD</div>
+              <input
+                className="input"
+                type="password"
+                autoComplete="new-password"
+                placeholder="••••••••"
+                value={pw.newPassword}
+                onChange={(e) => set({ pwChange: { ...pw, newPassword: e.target.value } })}
+              />
+            </div>
+            <div>
+              <div className="field-label">CONFIRM NEW PASSWORD</div>
+              <input
+                className="input"
+                type="password"
+                autoComplete="new-password"
+                placeholder="••••••••"
+                value={pw.confirm}
+                onChange={(e) => set({ pwChange: { ...pw, confirm: e.target.value } })}
+                onKeyDown={(e) => { if (e.key === 'Enter') changeMyPassword() }}
+              />
+            </div>
+            <div>
+              <button
+                className="btn primary"
+                onClick={() => changeMyPassword()}
+                disabled={!pw.oldPassword || pw.newPassword.length < 4 || pw.newPassword !== pw.confirm}
+              >
+                UPDATE PASSWORD
+              </button>
+              {pw.newPassword && pw.confirm && pw.newPassword !== pw.confirm && (
+                <div style={{ marginTop: 8, fontSize: 9, letterSpacing: '.12em', color: 'var(--danger)' }}>
+                  NEW PASSWORDS DO NOT MATCH
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="members-grid" style={{ marginTop: 14 }}>
         {state.members.map((m) => {

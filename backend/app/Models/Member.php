@@ -3,15 +3,19 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 
 /**
  * A family member. Mirrors the SEED_MEMBERS shape from the original app:
  * id (handle), name, relation, bio, birthday (MM-DD), color, initial,
- * isAdmin / isGuest flags. Passwords are hashed for login (password_hash);
- * an AES-encrypted copy (password_secret) is kept so the admin can VIEW a
- * member's password from the ADMIN tab — a deliberate family-vault feature.
+ * isAdmin / isGuest flags.
+ *
+ * PASSWORDS ARE HASHED ONLY. `password_hash` (bcrypt) is the sole thing
+ * stored — there is no encrypted copy, no plaintext column, and no way for
+ * anyone (including the admin, including whoever holds APP_KEY) to read a
+ * member's password back. The admin can RESET a password to a new value but
+ * can never view the current one. The old `password_secret` column that
+ * enabled the admin viewer was dropped in migration 2026_10_20_000004.
  */
 class Member extends Model
 {
@@ -31,7 +35,6 @@ class Member extends Model
         'is_admin',
         'is_guest',
         'password_hash',
-        'password_secret',
     ];
 
     protected $casts = [
@@ -63,26 +66,11 @@ class Member extends Model
     }
 
     /**
-     * Set a member's password: store the bcrypt hash (login source of truth)
-     * plus an AES-encrypted copy so the admin can view it later.
+     * Set a member's password. Stores the bcrypt hash and nothing else —
+     * the plaintext is discarded the moment this returns.
      */
     public function setPassword(string $plain): void
     {
         $this->password_hash = Hash::make($plain);
-        $this->password_secret = Crypt::encryptString($plain);
-    }
-
-    /** Decrypted (viewable) password for the admin — null when unset. */
-    public function viewablePassword(): ?string
-    {
-        if (! $this->password_secret) {
-            return null;
-        }
-
-        try {
-            return Crypt::decryptString($this->password_secret);
-        } catch (\Throwable $e) {
-            return null;
-        }
     }
 }

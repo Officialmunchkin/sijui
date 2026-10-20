@@ -11,7 +11,7 @@ export default function UploadModal() {
 
   const close = () => {
     if (state.uploading) return
-    set({ uploadOpen: false, uploadFiles: [], uploadCaption: '', uploadTagged: [], uploadNewAlbum: false, uploadNewAlbumName: '', uploadError: '' })
+    set({ uploadOpen: false, uploadFiles: [], uploadCaption: '', uploadTagged: [], uploadNewAlbum: false, uploadNewAlbumName: '', uploadError: '', uploadViewers: [], uploadShareMode: 'all' })
   }
 
   const onFiles = (e) => {
@@ -39,6 +39,25 @@ export default function UploadModal() {
         ? state.uploadTagged.filter((t) => t !== id)
         : [...state.uploadTagged, id],
     })
+
+  // SELECTIVE SHARING. 'all' means "All Family", which the server implements
+  // as "no visibility rows at all" — the default for every existing photo.
+  const restricted = state.uploadShareMode === 'select'
+  const toggleViewer = (id) =>
+    set({
+      uploadViewers: state.uploadViewers.includes(id)
+        ? state.uploadViewers.filter((t) => t !== id)
+        : [...state.uploadViewers, id],
+    })
+
+  // "MOM, DAD +1" — the first few names, then how many more are picked.
+  const viewerLabel = () => {
+    const names = state.uploadViewers
+      .map((id) => (state.members.find((m) => m.id === id) || {}).name)
+      .filter(Boolean)
+    if (names.length <= 2) return names.join(', ')
+    return `${names.slice(0, 2).join(', ')} +${names.length - 2}`
+  }
 
   const go = async () => {
     if (!state.uploadFiles.length) return toast('PICK AT LEAST ONE FILE')
@@ -136,10 +155,83 @@ export default function UploadModal() {
           )}
         </div>
 
+        {/* ------------------------------------------------ WHO CAN SEE?
+            Selective Sharing. "All Family" is the default and writes no
+            visibility rows server-side, so every existing photo and every
+            album/ZIP/download keeps working exactly as before. Picking
+            specific members narrows the photo to them + the uploader. */}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div className="field-label" style={{ margin: 0 }}>WHO CAN SEE?</div>
+            {restricted && (
+              <span style={{ fontSize: 9, letterSpacing: '.12em', color: 'var(--accent)', fontWeight: 700 }}>
+                👁 {viewerLabel()}
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            <button
+              className="btn mini chip-album"
+              style={!restricted ? { background: 'rgba(139,92,246,.25)', borderColor: 'var(--accent)', color: '#fff' } : undefined}
+              onClick={() => set({ uploadShareMode: 'all', uploadViewers: [] })}
+              aria-pressed={!restricted}
+            >
+              👨‍👩‍👧 ALL FAMILY
+            </button>
+            <button
+              className="btn mini chip-album"
+              style={restricted ? { background: 'rgba(139,92,246,.25)', borderColor: 'var(--accent)', color: '#fff' } : undefined}
+              onClick={() => set({ uploadShareMode: 'select' })}
+              aria-pressed={restricted}
+            >
+              ☑ SELECT
+            </button>
+          </div>
+
+          {restricted && (
+            <div style={{ marginTop: 8, display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+              {state.members.map((m) => {
+                const on = state.uploadViewers.includes(m.id)
+                return (
+                  <button
+                    key={m.id}
+                    className="btn mini chip-album"
+                    style={{
+                      flex: '0 0 auto',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      ...(on ? { background: 'rgba(139,92,246,.25)', borderColor: 'var(--accent)', color: '#fff' } : null),
+                    }}
+                    onClick={() => toggleViewer(m.id)}
+                    aria-pressed={on}
+                  >
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        width: 12, height: 12, borderRadius: 4, display: 'inline-grid', placeItems: 'center',
+                        border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}`,
+                        background: on ? 'var(--accent)' : 'transparent', fontSize: 8, color: '#fff',
+                      }}
+                    >
+                      {on ? '✓' : ''}
+                    </span>
+                    {m.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          <div style={{ marginTop: 6, fontSize: 9, letterSpacing: '.1em', color: 'var(--dim)', lineHeight: 1.6 }}>
+            {restricted
+              ? 'ONLY THE PEOPLE YOU TICK — PLUS YOU — WILL SEE THESE. NOBODY ELSE, NOT EVEN ADMIN.'
+              : 'EVERY FAMILY MEMBER CAN SEE THESE. CHOOSE SELECT TO KEEP THEM TO A FEW PEOPLE.'}
+          </div>
+        </div>
+
         {/* caption */}
         <div style={{ marginTop: 14 }}>
-          <div className="field-label">CAPTION (OPTIONAL)</div>
-          <input
+          <div className="field-label">CAPTION (OPTIONAL)</div>          <input
             className="input"
             placeholder="E.G. CHRISTMAS 2024"
             maxLength={300}
