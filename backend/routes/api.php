@@ -6,7 +6,34 @@ use App\Http\Controllers\BoardController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\SecretAlbumController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// ---------------------------------------------------------------- CORS PREFLIGHT
+// Ensure OPTIONS requests always get CORS headers even if the app crashes
+// before middleware (common on Render cold starts returning 502).
+Route::options('{any}', function (Request $request) {
+    $origin = $request->headers->get('Origin');
+    $allowed = [
+        'https://kashifamily.netlify.app',
+        'http://127.0.0.1:5173',
+        'http://localhost:5173',
+        'https://famvault-r2.famvault.workers.dev',
+    ];
+    if ($origin && preg_match('#^https://[a-z0-9-]+(\.[a-z0-9-]+)*\.netlify\.app$#i', $origin)) {
+        $allowed[] = $origin;
+    }
+    $allowOrigin = in_array($origin, $allowed, true) ? $origin : 'https://kashifamily.netlify.app';
+
+    return response('', 204)->withHeaders([
+        'Access-Control-Allow-Origin' => $allowOrigin,
+        'Access-Control-Allow-Methods' => 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Famvault-Token',
+        'Access-Control-Allow-Credentials' => 'false',
+        'Access-Control-Max-Age' => '86400',
+        'Vary' => 'Origin',
+    ]);
+})->where('any', '.*');
 
 /*
 |--------------------------------------------------------------------------

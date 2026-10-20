@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\HandleCors;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,6 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Enable CORS for API routes (must run before routing/auth so OPTIONS preflights work)
+        $middleware->appendToGroup('api', HandleCors::class);
         // Resolve the bearer/session token on every API request (optional auth);
         // auth.famvault then enforces that a member was resolved.
         $middleware->appendToGroup('api', \App\Http\Middleware\ResolveSession::class);
