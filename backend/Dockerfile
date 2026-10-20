@@ -88,6 +88,15 @@ COPY . .
 # regresses. See docker/patches/patch-libsql-driver.php.
 RUN php docker/patches/patch-libsql-driver.php
 
+# v1.3.1 also wraps column defaults in a Query\Expression in
+# LibSQLSchemaBuilder::getColumns(), and Laravel's BlueprintState then calls
+# Str::wrap() on that Expression — "could not be converted to string" — so any
+# Schema column read of a table with a column DEFAULT (members.color,
+# members.is_admin, ...) fataled and took the deploy down during
+# 2026_10_20_000004_remove_password_secret_column. Same self-verifying
+# contract as the patch above. See docker/patches/patch-libsql-schema-builder.php.
+RUN php docker/patches/patch-libsql-schema-builder.php
+
 RUN composer dump-autoload --no-dev --optimize --no-scripts --no-interaction \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache \
