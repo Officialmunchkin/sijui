@@ -48,7 +48,7 @@ const initial = {
   resetPwId: null, resetPwDraft: '',   // admin RESET modal (set a new password)
   pwChange: { oldPassword:'', newPassword:'', confirm:'' },   // member's own
   toast: null,
-  visibleLimit: 100,
+  visibleLimit: 20,
 }
 
 function blankMember(){

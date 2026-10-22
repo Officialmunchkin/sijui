@@ -60,7 +60,7 @@ export default function HomeTab() {
           RECENT MEMORIES
         </div>
         {state.photos.length > state.visibleLimit && (
-          <button className="btn mini" onClick={() => set({ visibleLimit: state.visibleLimit + 100 })}>
+          <button className="btn mini" onClick={() => set({ visibleLimit: state.visibleLimit + 20 })}>
             SHOW MORE ↓
           </button>
         )}

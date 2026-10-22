@@ -419,26 +419,30 @@ class PhotoController extends Controller
             if (! $actor || $actor->is_guest || ! $allowed->contains($actor->id)) {
                 return response()->json(['error' => 'NOT SHARED WITH YOU'], 403);
             }
+
+            // For restricted photos, must proxy through Laravel to enforce auth
+            try {
+                $res = $this->worker->getFile($key);
+            } catch (\Throwable $e) {
+                return response()->json(['error' => 'FILE FETCH FAILED'], 502);
+            }
+
+            if ($res->failed()) {
+                return response('Not found', $res->status());
+            }
+
+            $headers = [
+                'Content-Type' => $res->header('Content-Type') ?: 'application/octet-stream',
+                'Cache-Control' => 'private, no-store, max-age=0',
+            ];
+
+            return response($res->body(), 200, $headers);
         }
 
-        try {
-            $res = $this->worker->getFile($key);
-        } catch (\Throwable $e) {
-            return response()->json(['error' => 'FILE FETCH FAILED'], 502);
-        }
-
-        if ($res->failed()) {
-            return response('Not found', $res->status());
-        }
-
-        $headers = [
-            'Content-Type' => $res->header('Content-Type') ?: 'application/octet-stream',
-            'Cache-Control' => $restricted
-                ? 'private, no-store, max-age=0'
-                : 'public, max-age=31536000, immutable',
-        ];
-
-        return response($res->body(), 200, $headers);
+        // For public photos, redirect directly to Worker to save Render bandwidth
+        $workerUrl = rtrim(config('famvault.worker_url'), '/');
+        $encodedKey = implode('/', array_map('rawurlencode', explode('/', $key)));
+        return redirect()->away($workerUrl.'/file/'.$encodedKey, 302);
     }
 
     // ------------------------------------------------------- VISIBILITY

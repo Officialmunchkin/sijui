@@ -129,9 +129,8 @@ export async function apiFetchSecretBytes(id){
 export function fileURL(key){
   if(!key) return ''
   const enc = key.split('/').map(encodeURIComponent).join('/')
-  return USE_WORKER_FILES
-    ? R2_BASE + '/file/' + enc
-    : API_BASE + '/photos/file/' + enc
+  // Always go through API proxy for consistency; backend redirects public files to Worker
+  return API_BASE + '/photos/file/' + enc
 }
 
 /* Download a photo's bytes and save via a temporary anchor. */
